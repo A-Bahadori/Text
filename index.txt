@@ -4,98 +4,117 @@ using System.Xml.Linq;
 using System.Linq;
 using System.Collections.Generic;
 
-class Program
+namespace ProjectReferenceMapper
 {
-    static void Main(string[] args)
+    /// <summary>
+    /// این برنامه برای تحلیل و نگاشت رفرنس‌های پروژه‌های سی‌شارپ طراحی شده است.
+    /// قابلیت پشتیبانی از هر دو نوع پروژه SDK-style و فرمت قدیمی را دارد.
+    /// </summary>
+    class Program
     {
-        Console.WriteLine("لطفاً مسیر پروژه را وارد کنید:");
-        string projectPath = Console.ReadLine();
-
-        if (!Directory.Exists(projectPath))
+        static void Main(string[] args)
         {
-            Console.WriteLine("مسیر وارد شده معتبر نیست!");
-            return;
-        }
-
-        try
-        {
-            ProcessProjects(projectPath);
-            Console.WriteLine("عملیات با موفقیت انجام شد.");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"خطا در اجرای برنامه: {ex.Message}");
-        }
-    }
-
-    static void ProcessProjects(string rootPath)
-    {
-        var projectFiles = Directory.GetFiles(rootPath, "*.csproj", SearchOption.AllDirectories);
-        
-        foreach (var projectFile in projectFiles)
-        {
-            var references = GetProjectReferences(projectFile);
-            SaveReferencesToFile(projectFile, references);
-        }
-    }
-
-    static List<string> GetProjectReferences(string projectFile)
-    {
-        var references = new List<string>();
-        var doc = XDocument.Load(projectFile);
-        var root = doc.Root;
-
-        // بررسی نوع پروژه (SDK-style یا قدیمی)
-        bool isSdkStyle = root.Attribute("Sdk") != null;
-
-        if (isSdkStyle)
-        {
-            // پردازش رفرنس‌های SDK-style
-            var packageRefs = root.Descendants("PackageReference")
-                .Select(x => $"Package: {x.Attribute("Include")?.Value} - Version: {x.Attribute("Version")?.Value}");
+            Console.WriteLine("ProjectReferenceMapper v1.0");
+            Console.WriteLine("یک ابزار برای نگاشت رفرنس‌های پروژه‌های سی‌شارپ");
+            Console.WriteLine("----------------------------------------");
             
-            var projectRefs = root.Descendants("ProjectReference")
-                .Select(x => $"Project: {x.Attribute("Include")?.Value}");
+            Console.WriteLine("لطفاً مسیر پروژه را وارد کنید:");
+            string projectPath = Console.ReadLine();
 
-            references.AddRange(packageRefs);
-            references.AddRange(projectRefs);
+            if (!Directory.Exists(projectPath))
+            {
+                Console.WriteLine("مسیر وارد شده معتبر نیست!");
+                return;
+            }
+
+            try
+            {
+                ProcessProjects(projectPath);
+                Console.WriteLine("عملیات با موفقیت انجام شد.");
+                Console.WriteLine("فایل‌های خروجی در کنار هر پروژه ایجاد شدند.");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"خطا در اجرای برنامه: {ex.Message}");
+            }
         }
-        else
+
+        static void ProcessProjects(string rootPath)
         {
-            // پردازش رفرنس‌های فرمت قدیمی
-            var assemblyRefs = root.Descendants()
-                .Where(x => x.Name.LocalName == "Reference")
-                .Select(x => $"Assembly: {x.Attribute("Include")?.Value}");
-
-            var projectRefs = root.Descendants()
-                .Where(x => x.Name.LocalName == "ProjectReference")
-                .Select(x => $"Project: {x.Attribute("Include")?.Value}");
-
-            references.AddRange(assemblyRefs);
-            references.AddRange(projectRefs);
+            var projectFiles = Directory.GetFiles(rootPath, "*.csproj", SearchOption.AllDirectories);
+            
+            foreach (var projectFile in projectFiles)
+            {
+                var references = GetProjectReferences(projectFile);
+                SaveReferencesToFile(projectFile, references);
+            }
         }
 
-        return references;
-    }
-
-    static void SaveReferencesToFile(string projectFile, List<string> references)
-    {
-        var projectName = Path.GetFileNameWithoutExtension(projectFile);
-        var outputPath = Path.Combine(
-            Path.GetDirectoryName(projectFile), 
-            $"{projectName}_References.txt"
-        );
-
-        var content = new List<string>
+        /// <summary>
+        /// استخراج تمام رفرنس‌های یک پروژه
+        /// </summary>
+        static List<string> GetProjectReferences(string projectFile)
         {
-            $"رفرنس‌های پروژه: {projectName}",
-            $"مسیر پروژه: {projectFile}",
-            "----------------------------------------",
-            string.Empty
-        };
+            var references = new List<string>();
+            var doc = XDocument.Load(projectFile);
+            var root = doc.Root;
 
-        content.AddRange(references);
+            bool isSdkStyle = root.Attribute("Sdk") != null;
 
-        File.WriteAllLines(outputPath, content);
+            if (isSdkStyle)
+            {
+                var packageRefs = root.Descendants("PackageReference")
+                    .Select(x => $"Package: {x.Attribute("Include")?.Value} - Version: {x.Attribute("Version")?.Value}");
+                
+                var projectRefs = root.Descendants("ProjectReference")
+                    .Select(x => $"Project: {x.Attribute("Include")?.Value}");
+
+                references.AddRange(packageRefs);
+                references.AddRange(projectRefs);
+            }
+            else
+            {
+                var assemblyRefs = root.Descendants()
+                    .Where(x => x.Name.LocalName == "Reference")
+                    .Select(x => $"Assembly: {x.Attribute("Include")?.Value}");
+
+                var projectRefs = root.Descendants()
+                    .Where(x => x.Name.LocalName == "ProjectReference")
+                    .Select(x => $"Project: {x.Attribute("Include")?.Value}");
+
+                references.AddRange(assemblyRefs);
+                references.AddRange(projectRefs);
+            }
+
+            return references;
+        }
+
+        /// <summary>
+        /// ذخیره رفرنس‌ها در فایل خروجی
+        /// </summary>
+        static void SaveReferencesToFile(string projectFile, List<string> references)
+        {
+            var projectName = Path.GetFileNameWithoutExtension(projectFile);
+            var outputPath = Path.Combine(
+                Path.GetDirectoryName(projectFile), 
+                $"{projectName}_References.txt"
+            );
+
+            var content = new List<string>
+            {
+                $"ProjectReferenceMapper - گزارش رفرنس‌ها",
+                $"تاریخ ایجاد: {DateTime.Now}",
+                $"نام پروژه: {projectName}",
+                $"مسیر پروژه: {projectFile}",
+                "----------------------------------------",
+                string.Empty,
+                "لیست رفرنس‌ها:",
+                string.Empty
+            };
+
+            content.AddRange(references);
+
+            File.WriteAllLines(outputPath, content);
+        }
     }
 }
