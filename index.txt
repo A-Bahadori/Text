@@ -1,14 +1,14 @@
 using System;
 using System.IO;
-using System.Linq;
 using System.Xml.Linq;
+using System.Linq;
 using System.Collections.Generic;
 
 class Program
 {
     static void Main(string[] args)
     {
-        Console.WriteLine("لطفا مسیر پروژه را وارد کنید:");
+        Console.WriteLine("لطفاً مسیر پروژه را وارد کنید:");
         string projectPath = Console.ReadLine();
 
         if (!Directory.Exists(projectPath))
@@ -17,121 +17,85 @@ class Program
             return;
         }
 
-        var invalidReferences = new List<string>();
+        try
+        {
+            ProcessProjects(projectPath);
+            Console.WriteLine("عملیات با موفقیت انجام شد.");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"خطا در اجرای برنامه: {ex.Message}");
+        }
+    }
 
-        // پیدا کردن تمام فایل‌های csproj
-        var projectFiles = Directory.GetFiles(projectPath, "*.csproj", SearchOption.AllDirectories);
-
+    static void ProcessProjects(string rootPath)
+    {
+        var projectFiles = Directory.GetFiles(rootPath, "*.csproj", SearchOption.AllDirectories);
+        
         foreach (var projectFile in projectFiles)
         {
-            try
-            {
-                XDocument doc = XDocument.Load(projectFile);
-                bool isSdkStyle = doc.Root.Attribute("Sdk") != null;
-
-                // بررسی رفرنس‌ها در پروژه‌های SDK-Style
-                if (isSdkStyle)
-                {
-                    CheckSdkStyleProjectReferences(doc, projectFile, invalidReferences);
-                }
-                // بررسی رفرنس‌ها در پروژه‌های قدیمی
-                else
-                {
-                    CheckLegacyProjectReferences(doc, projectFile, invalidReferences);
-                }
-            }
-            catch (Exception ex)
-            {
-                invalidReferences.Add($"خطا در خواندن فایل {projectFile}: {ex.Message}");
-            }
-        }
-
-        // ذخیره نتایج در فایل
-        string outputPath = Path.Combine(projectPath, "invalid-references.txt");
-        File.WriteAllLines(outputPath, invalidReferences);
-
-        Console.WriteLine($"بررسی به پایان رسید. نتایج در فایل {outputPath} ذخیره شد.");
-        Console.WriteLine($"تعداد رفرنس‌های نامعتبر: {invalidReferences.Count}");
-    }
-
-    static void CheckSdkStyleProjectReferences(XDocument doc, string projectFile, List<string> invalidReferences)
-    {
-        var projectDir = Path.GetDirectoryName(projectFile);
-        
-        // بررسی Project References
-        var projectReferences = doc.Descendants("ProjectReference")
-            .Select(x => x.Attribute("Include")?.Value)
-            .Where(x => !string.IsNullOrEmpty(x));
-
-        foreach (var reference in projectReferences)
-        {
-            var fullPath = Path.GetFullPath(Path.Combine(projectDir, reference));
-            if (!File.Exists(fullPath))
-            {
-                invalidReferences.Add($"رفرنس پروژه نامعتبر در {projectFile}: {reference}");
-            }
-        }
-
-        // بررسی Package References
-        var packageReferences = doc.Descendants("PackageReference")
-            .Select(x => new
-            {
-                Name = x.Attribute("Include")?.Value,
-                Version = x.Attribute("Version")?.Value
-            })
-            .Where(x => !string.IsNullOrEmpty(x.Name));
-
-        string nugetPath = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-            ".nuget", "packages");
-
-        foreach (var package in packageReferences)
-        {
-            var packagePath = Path.Combine(nugetPath, package.Name.ToLowerInvariant(), package.Version ?? "");
-            if (!Directory.Exists(packagePath))
-            {
-                invalidReferences.Add($"پکیج نامعتبر در {projectFile}: {package.Name} {package.Version}");
-            }
+            var references = GetProjectReferences(projectFile);
+            SaveReferencesToFile(projectFile, references);
         }
     }
 
-    static void CheckLegacyProjectReferences(XDocument doc, string projectFile, List<string> invalidReferences)
+    static List<string> GetProjectReferences(string projectFile)
     {
-        var projectDir = Path.GetDirectoryName(projectFile);
-        
-        // بررسی Reference های قدیمی
-        var references = doc.Descendants(XName.Get("Reference", "http://schemas.microsoft.com/developer/msbuild/2003"))
-            .Select(x => new
-            {
-                Include = x.Attribute("Include")?.Value,
-                HintPath = x.Element(XName.Get("HintPath", "http://schemas.microsoft.com/developer/msbuild/2003"))?.Value
-            })
-            .Where(x => !string.IsNullOrEmpty(x.Include));
+        var references = new List<string>();
+        var doc = XDocument.Load(projectFile);
+        var root = doc.Root;
 
-        foreach (var reference in references)
+        // بررسی نوع پروژه (SDK-style یا قدیمی)
+        bool isSdkStyle = root.Attribute("Sdk") != null;
+
+        if (isSdkStyle)
         {
-            if (!string.IsNullOrEmpty(reference.HintPath))
-            {
-                var fullPath = Path.GetFullPath(Path.Combine(projectDir, reference.HintPath));
-                if (!File.Exists(fullPath))
-                {
-                    invalidReferences.Add($"رفرنس نامعتبر در {projectFile}: {reference.Include} ({reference.HintPath})");
-                }
-            }
+            // پردازش رفرنس‌های SDK-style
+            var packageRefs = root.Descendants("PackageReference")
+                .Select(x => $"Package: {x.Attribute("Include")?.Value} - Version: {x.Attribute("Version")?.Value}");
+            
+            var projectRefs = root.Descendants("ProjectReference")
+                .Select(x => $"Project: {x.Attribute("Include")?.Value}");
+
+            references.AddRange(packageRefs);
+            references.AddRange(projectRefs);
+        }
+        else
+        {
+            // پردازش رفرنس‌های فرمت قدیمی
+            var assemblyRefs = root.Descendants()
+                .Where(x => x.Name.LocalName == "Reference")
+                .Select(x => $"Assembly: {x.Attribute("Include")?.Value}");
+
+            var projectRefs = root.Descendants()
+                .Where(x => x.Name.LocalName == "ProjectReference")
+                .Select(x => $"Project: {x.Attribute("Include")?.Value}");
+
+            references.AddRange(assemblyRefs);
+            references.AddRange(projectRefs);
         }
 
-        // بررسی Project References در فرمت قدیمی
-        var projectReferences = doc.Descendants(XName.Get("ProjectReference", "http://schemas.microsoft.com/developer/msbuild/2003"))
-            .Select(x => x.Attribute("Include")?.Value)
-            .Where(x => !string.IsNullOrEmpty(x));
+        return references;
+    }
 
-        foreach (var reference in projectReferences)
+    static void SaveReferencesToFile(string projectFile, List<string> references)
+    {
+        var projectName = Path.GetFileNameWithoutExtension(projectFile);
+        var outputPath = Path.Combine(
+            Path.GetDirectoryName(projectFile), 
+            $"{projectName}_References.txt"
+        );
+
+        var content = new List<string>
         {
-            var fullPath = Path.GetFullPath(Path.Combine(projectDir, reference));
-            if (!File.Exists(fullPath))
-            {
-                invalidReferences.Add($"رفرنس پروژه نامعتبر در {projectFile}: {reference}");
-            }
-        }
+            $"رفرنس‌های پروژه: {projectName}",
+            $"مسیر پروژه: {projectFile}",
+            "----------------------------------------",
+            string.Empty
+        };
+
+        content.AddRange(references);
+
+        File.WriteAllLines(outputPath, content);
     }
 }
