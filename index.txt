@@ -1,120 +1,257 @@
 using System;
-using System.IO;
-using System.Xml.Linq;
-using System.Linq;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Xml.Linq;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace ProjectReferenceMapper
 {
-    /// <summary>
-    /// این برنامه برای تحلیل و نگاشت رفرنس‌های پروژه‌های سی‌شارپ طراحی شده است.
-    /// قابلیت پشتیبانی از هر دو نوع پروژه SDK-style و فرمت قدیمی را دارد.
-    /// </summary>
     class Program
     {
         static void Main(string[] args)
         {
-            Console.WriteLine("ProjectReferenceMapper v1.0");
-            Console.WriteLine("یک ابزار برای نگاشت رفرنس‌های پروژه‌های سی‌شارپ");
-            Console.WriteLine("----------------------------------------");
-            
-            Console.WriteLine("لطفاً مسیر پروژه را وارد کنید:");
-            string projectPath = Console.ReadLine();
-
-            if (!Directory.Exists(projectPath))
-            {
-                Console.WriteLine("مسیر وارد شده معتبر نیست!");
-                return;
-            }
-
             try
             {
-                ProcessProjects(projectPath);
-                Console.WriteLine("عملیات با موفقیت انجام شد.");
-                Console.WriteLine("فایل‌های خروجی در کنار هر پروژه ایجاد شدند.");
+                var serviceProvider = ConfigureServices();
+                var analyzer = serviceProvider.GetRequiredService<IProjectAnalyzer>();
+                
+                Console.WriteLine("ProjectReferenceMapper v1.0");
+                Console.WriteLine("یک ابزار برای نگاشت رفرنس‌های پروژه‌های سی‌شارپ");
+                Console.WriteLine("----------------------------------------");
+
+                Console.WriteLine("لطفاً مسیر پروژه را وارد کنید:");
+                string projectPath = Console.ReadLine();
+
+                analyzer.AnalyzeProjects(projectPath);
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"خطا در اجرای برنامه: {ex.Message}");
+                Console.WriteLine($"خطای غیرمنتظره: {ex.Message}");
             }
         }
 
-        static void ProcessProjects(string rootPath)
+        private static IServiceProvider ConfigureServices()
         {
-            var projectFiles = Directory.GetFiles(rootPath, "*.csproj", SearchOption.AllDirectories);
+            var services = new ServiceCollection();
+
+            services.AddLogging(builder =>
+            {
+                builder.AddConsole();
+                builder.SetMinimumLevel(LogLevel.Information);
+            });
+
+            services.AddSingleton<IProjectAnalyzer, ProjectAnalyzer>();
+            services.AddSingleton<IProjectFinder, ProjectFinder>();
+            services.AddSingleton<IProjectParser, ProjectParser>();
+            services.AddSingleton<IReferenceWriter, ReferenceWriter>();
+
+            return services.BuildServiceProvider();
+        }
+    }
+
+    public interface IProjectAnalyzer
+    {
+        void AnalyzeProjects(string rootPath);
+    }
+
+    public class ProjectAnalyzer : IProjectAnalyzer
+    {
+        private readonly ILogger<ProjectAnalyzer> _logger;
+        private readonly IProjectFinder _projectFinder;
+        private readonly IProjectParser _projectParser;
+        private readonly IReferenceWriter _referenceWriter;
+
+        public ProjectAnalyzer(
+            ILogger<ProjectAnalyzer> logger,
+            IProjectFinder projectFinder,
+            IProjectParser projectParser,
+            IReferenceWriter referenceWriter)
+        {
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _projectFinder = projectFinder ?? throw new ArgumentNullException(nameof(projectFinder));
+            _projectParser = projectParser ?? throw new ArgumentNullException(nameof(projectParser));
+            _referenceWriter = referenceWriter ?? throw new ArgumentNullException(nameof(referenceWriter));
+        }
+
+        public void AnalyzeProjects(string rootPath)
+        {
+            if (!Directory.Exists(rootPath))
+            {
+                throw new DirectoryNotFoundException("مسیر مورد نظر یافت نشد.");
+            }
+
+            _logger.LogInformation("شروع تحلیل پروژه‌ها در مسیر: {Path}", rootPath);
+
+            var projectFiles = _projectFinder.FindProjects(rootPath);
             
             foreach (var projectFile in projectFiles)
             {
-                var references = GetProjectReferences(projectFile);
-                SaveReferencesToFile(projectFile, references);
+                try
+                {
+                    _logger.LogInformation("در حال پردازش پروژه: {Project}", Path.GetFileName(projectFile));
+                    var projectInfo = _projectParser.ParseProject(projectFile);
+                    _referenceWriter.WriteReferences(projectInfo);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "خطا در پردازش پروژه {Project}", projectFile);
+                }
             }
-        }
 
-        /// <summary>
-        /// استخراج تمام رفرنس‌های یک پروژه
-        /// </summary>
-        static List<string> GetProjectReferences(string projectFile)
+            _logger.LogInformation("تحلیل پروژه‌ها با موفقیت به پایان رسید.");
+        }
+    }
+
+    public interface IProjectFinder
+    {
+        IEnumerable<string> FindProjects(string rootPath);
+    }
+
+    public class ProjectFinder : IProjectFinder
+    {
+        public IEnumerable<string> FindProjects(string rootPath)
         {
-            var references = new List<string>();
+            return Directory.GetFiles(rootPath, "*.csproj", SearchOption.AllDirectories);
+        }
+    }
+
+    public interface IProjectParser
+    {
+        ProjectInfo ParseProject(string projectFile);
+    }
+
+    public class ProjectParser : IProjectParser
+    {
+        public ProjectInfo ParseProject(string projectFile)
+        {
             var doc = XDocument.Load(projectFile);
             var root = doc.Root;
+            var isSdkStyle = root.Attribute("Sdk") != null;
 
-            bool isSdkStyle = root.Attribute("Sdk") != null;
+            var references = new List<ReferenceInfo>();
 
             if (isSdkStyle)
             {
-                var packageRefs = root.Descendants("PackageReference")
-                    .Select(x => $"Package: {x.Attribute("Include")?.Value} - Version: {x.Attribute("Version")?.Value}");
-                
-                var projectRefs = root.Descendants("ProjectReference")
-                    .Select(x => $"Project: {x.Attribute("Include")?.Value}");
-
-                references.AddRange(packageRefs);
-                references.AddRange(projectRefs);
+                references.AddRange(GetPackageReferences(root));
+                references.AddRange(GetProjectReferences(root));
             }
             else
             {
-                var assemblyRefs = root.Descendants()
-                    .Where(x => x.Name.LocalName == "Reference")
-                    .Select(x => $"Assembly: {x.Attribute("Include")?.Value}");
-
-                var projectRefs = root.Descendants()
-                    .Where(x => x.Name.LocalName == "ProjectReference")
-                    .Select(x => $"Project: {x.Attribute("Include")?.Value}");
-
-                references.AddRange(assemblyRefs);
-                references.AddRange(projectRefs);
+                references.AddRange(GetLegacyReferences(root));
+                references.AddRange(GetProjectReferences(root));
             }
 
-            return references;
+            return new ProjectInfo
+            {
+                ProjectPath = projectFile,
+                ProjectName = Path.GetFileNameWithoutExtension(projectFile),
+                IsSdkStyle = isSdkStyle,
+                References = references
+            };
         }
 
-        /// <summary>
-        /// ذخیره رفرنس‌ها در فایل خروجی
-        /// </summary>
-        static void SaveReferencesToFile(string projectFile, List<string> references)
+        private IEnumerable<ReferenceInfo> GetPackageReferences(XElement root)
         {
-            var projectName = Path.GetFileNameWithoutExtension(projectFile);
+            return root.Descendants("PackageReference")
+                .Select(x => new ReferenceInfo
+                {
+                    Type = ReferenceType.Package,
+                    Name = x.Attribute("Include")?.Value,
+                    Version = x.Attribute("Version")?.Value
+                });
+        }
+
+        private IEnumerable<ReferenceInfo> GetProjectReferences(XElement root)
+        {
+            return root.Descendants("ProjectReference")
+                .Select(x => new ReferenceInfo
+                {
+                    Type = ReferenceType.Project,
+                    Path = x.Attribute("Include")?.Value
+                });
+        }
+
+        private IEnumerable<ReferenceInfo> GetLegacyReferences(XElement root)
+        {
+            return root.Descendants()
+                .Where(x => x.Name.LocalName == "Reference")
+                .Select(x => new ReferenceInfo
+                {
+                    Type = ReferenceType.Assembly,
+                    Name = x.Attribute("Include")?.Value
+                });
+        }
+    }
+
+    public interface IReferenceWriter
+    {
+        void WriteReferences(ProjectInfo projectInfo);
+    }
+
+    public class ReferenceWriter : IReferenceWriter
+    {
+        public void WriteReferences(ProjectInfo projectInfo)
+        {
             var outputPath = Path.Combine(
-                Path.GetDirectoryName(projectFile), 
-                $"{projectName}_References.txt"
+                Path.GetDirectoryName(projectInfo.ProjectPath), 
+                $"{projectInfo.ProjectName}_References.txt"
             );
 
             var content = new List<string>
             {
-                $"ProjectReferenceMapper - گزارش رفرنس‌ها",
+                "ProjectReferenceMapper - گزارش رفرنس‌ها",
                 $"تاریخ ایجاد: {DateTime.Now}",
-                $"نام پروژه: {projectName}",
-                $"مسیر پروژه: {projectFile}",
+                $"نام پروژه: {projectInfo.ProjectName}",
+                $"نوع پروژه: {(projectInfo.IsSdkStyle ? "SDK-Style" : "Legacy")}",
+                $"مسیر پروژه: {projectInfo.ProjectPath}",
                 "----------------------------------------",
                 string.Empty,
                 "لیست رفرنس‌ها:",
                 string.Empty
             };
 
-            content.AddRange(references);
+            foreach (var reference in projectInfo.References)
+            {
+                content.Add(FormatReference(reference));
+            }
 
             File.WriteAllLines(outputPath, content);
         }
+
+        private string FormatReference(ReferenceInfo reference)
+        {
+            return reference.Type switch
+            {
+                ReferenceType.Package => $"Package: {reference.Name} - Version: {reference.Version}",
+                ReferenceType.Project => $"Project: {reference.Path}",
+                ReferenceType.Assembly => $"Assembly: {reference.Name}",
+                _ => throw new ArgumentException($"نوع رفرنس نامعتبر: {reference.Type}")
+            };
+        }
+    }
+
+    public class ProjectInfo
+    {
+        public string ProjectPath { get; set; }
+        public string ProjectName { get; set; }
+        public bool IsSdkStyle { get; set; }
+        public IEnumerable<ReferenceInfo> References { get; set; }
+    }
+
+    public class ReferenceInfo
+    {
+        public ReferenceType Type { get; set; }
+        public string Name { get; set; }
+        public string Version { get; set; }
+        public string Path { get; set; }
+    }
+
+    public enum ReferenceType
+    {
+        Package,
+        Project,
+        Assembly
     }
 }
