@@ -1,34 +1,181 @@
-// ... (کد قبلی بدون تغییر تا ReferenceWriter)
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using System.Xml.Linq;
+
+var builder = new ServiceCollection()
+    .AddLogging(logging =>
+    {
+        logging.AddConsole();
+        logging.SetMinimumLevel(LogLevel.Information);
+    })
+    .AddSingleton<IProjectAnalyzer, ProjectAnalyzer>()
+    .AddSingleton<IProjectFinder, ProjectFinder>()
+    .AddSingleton<IProjectParser, ProjectParser>()
+    .AddSingleton<IReferenceWriter, ReferenceWriter>();
+
+var serviceProvider = builder.BuildServiceProvider();
+var analyzer = serviceProvider.GetRequiredService<IProjectAnalyzer>();
+
+try
+{
+    Console.WriteLine("ProjectReferenceMapper v1.0");
+    Console.WriteLine("یک ابزار برای نگاشت رفرنس‌های پروژه‌های سی‌شارپ");
+    Console.WriteLine("----------------------------------------");
+
+    Console.WriteLine("لطفاً مسیر پروژه را وارد کنید:");
+    var projectPath = Console.ReadLine();
+
+    await analyzer.AnalyzeProjectsAsync(projectPath);
+}
+catch (Exception ex)
+{
+    Console.WriteLine($"خطای غیرمنتظره: {ex.Message}");
+}
+
+// Interfaces
+public interface IProjectAnalyzer
+{
+    Task AnalyzeProjectsAsync(string rootPath);
+}
+
+public interface IProjectFinder
+{
+    IEnumerable<string> FindProjects(string rootPath);
+}
+
+public interface IProjectParser
+{
+    Task<ProjectInfo> ParseProjectAsync(string projectFile);
+}
+
+public interface IReferenceWriter
+{
+    Task WriteReferencesAsync(ProjectInfo projectInfo);
+}
+
+// Implementation Classes
+public sealed class ProjectAnalyzer : IProjectAnalyzer
+{
+    private readonly ILogger<ProjectAnalyzer> _logger;
+    private readonly IProjectFinder _projectFinder;
+    private readonly IProjectParser _projectParser;
+    private readonly IReferenceWriter _referenceWriter;
+
+    public ProjectAnalyzer(
+        ILogger<ProjectAnalyzer> logger,
+        IProjectFinder projectFinder,
+        IProjectParser projectParser,
+        IReferenceWriter referenceWriter) =>
+        (_logger, _projectFinder, _projectParser, _referenceWriter) = 
+        (logger, projectFinder, projectParser, referenceWriter);
+
+    public async Task AnalyzeProjectsAsync(string rootPath)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(rootPath);
+
+        if (!Directory.Exists(rootPath))
+        {
+            throw new DirectoryNotFoundException("مسیر مورد نظر یافت نشد.");
+        }
+
+        _logger.LogInformation("شروع تحلیل پروژه‌ها در مسیر: {Path}", rootPath);
+
+        var projectFiles = _projectFinder.FindProjects(rootPath);
+        var tasks = new List<Task>();
+
+        foreach (var projectFile in projectFiles)
+        {
+            tasks.Add(ProcessProjectAsync(projectFile));
+        }
+
+        await Task.WhenAll(tasks);
+        _logger.LogInformation("تحلیل پروژه‌ها با موفقیت به پایان رسید.");
+    }
+
+    private async Task ProcessProjectAsync(string projectFile)
+    {
+        try
+        {
+            _logger.LogInformation("در حال پردازش پروژه: {Project}", Path.GetFileName(projectFile));
+            var projectInfo = await _projectParser.ParseProjectAsync(projectFile);
+            await _referenceWriter.WriteReferencesAsync(projectInfo);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "خطا در پردازش پروژه {Project}", projectFile);
+        }
+    }
+}
+
+public sealed class ProjectFinder : IProjectFinder
+{
+    public IEnumerable<string> FindProjects(string rootPath) =>
+        Directory.EnumerateFiles(rootPath, "*.csproj", SearchOption.AllDirectories);
+}
+
+public sealed class ProjectParser : IProjectParser
+{
+    public async Task<ProjectInfo> ParseProjectAsync(string projectFile)
+    {
+        var doc = await XDocument.LoadAsync(
+            File.OpenRead(projectFile), 
+            LoadOptions.None, 
+            CancellationToken.None);
+
+        var root = doc.Root;
+        var isSdkStyle = root?.Attribute("Sdk") is not null;
+
+        var references = new List<ReferenceInfo>();
+        if (root is not null)
+        {
+            if (isSdkStyle)
+            {
+                references.AddRange(GetPackageReferences(root));
+                references.AddRange(GetProjectReferences(root));
+            }
+            else
+            {
+                references.AddRange(GetLegacyReferences(root));
+                references.AddRange(GetProjectReferences(root));
+            }
+        }
+
+        return new ProjectInfo(
+            Path.GetFileNameWithoutExtension(projectFile),
+            projectFile,
+            isSdkStyle,
+            references);
+    }
+
+    private static IEnumerable<ReferenceInfo> GetPackageReferences(XElement root) =>
+        root.Descendants("PackageReference")
+            .Select(x => new ReferenceInfo(
+                ReferenceType.Package,
+                x.Attribute("Include")?.Value,
+                x.Attribute("Version")?.Value));
+
+    private static IEnumerable<ReferenceInfo> GetProjectReferences(XElement root) =>
+        root.Descendants("ProjectReference")
+            .Select(x => new ReferenceInfo(
+                ReferenceType.Project,
+                path: x.Attribute("Include")?.Value));
+
+    private static IEnumerable<ReferenceInfo> GetLegacyReferences(XElement root) =>
+        root.Descendants()
+            .Where(x => x.Name.LocalName == "Reference")
+            .Select(x => new ReferenceInfo(
+                ReferenceType.Assembly,
+                name: x.Attribute("Include")?.Value));
+}
 
 public sealed class ReferenceWriter : IReferenceWriter
 {
-    private const string BaseOutputFolderName = "Project Reference Mapper";
-    private readonly string _currentRunPath;
-    private readonly ILogger<ReferenceWriter> _logger;
-
-    public ReferenceWriter(ILogger<ReferenceWriter> logger)
-    {
-        _logger = logger;
-        var timestamp = DateTime.Now.ToString("yyyy-MM-dd HH-mm-ss");
-        var baseOutputPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, BaseOutputFolderName);
-        _currentRunPath = Path.Combine(baseOutputPath, $"Run_{timestamp}");
-        EnsureOutputDirectoryExists();
-    }
-
-    private void EnsureOutputDirectoryExists()
-    {
-        if (!Directory.Exists(_currentRunPath))
-        {
-            Directory.CreateDirectory(_currentRunPath);
-            _logger.LogInformation("پوشه خروجی برای این اجرا ایجاد شد: {Path}", _currentRunPath);
-        }
-    }
-
     public async Task WriteReferencesAsync(ProjectInfo projectInfo)
     {
-        var sanitizedProjectName = SanitizeFileName(projectInfo.ProjectName);
-        var outputFileName = $"{sanitizedProjectName}_References.txt";
-        var outputPath = Path.Combine(_currentRunPath, outputFileName);
+        var outputPath = Path.Combine(
+            Path.GetDirectoryName(projectInfo.ProjectPath)!, 
+            $"{projectInfo.ProjectName}_References.txt"
+        );
 
         var content = new List<string>
         {
@@ -45,20 +192,7 @@ public sealed class ReferenceWriter : IReferenceWriter
 
         content.AddRange(projectInfo.References.Select(FormatReference));
 
-        // اضافه کردن خلاصه آماری
-        content.AddRange(new[]
-        {
-            string.Empty,
-            "----------------------------------------",
-            "خلاصه آماری:",
-            $"تعداد کل رفرنس‌ها: {projectInfo.References.Count()}",
-            $"تعداد Package References: {projectInfo.References.Count(r => r.Type == ReferenceType.Package)}",
-            $"تعداد Project References: {projectInfo.References.Count(r => r.Type == ReferenceType.Project)}",
-            $"تعداد Assembly References: {projectInfo.References.Count(r => r.Type == ReferenceType.Assembly)}"
-        });
-
         await File.WriteAllLinesAsync(outputPath, content);
-        _logger.LogInformation("فایل خروجی ایجاد شد: {Path}", outputPath);
     }
 
     private static string FormatReference(ReferenceInfo reference) => reference.Type switch
@@ -68,64 +202,24 @@ public sealed class ReferenceWriter : IReferenceWriter
         ReferenceType.Assembly => $"Assembly: {reference.Name}",
         _ => throw new ArgumentException($"نوع رفرنس نامعتبر: {reference.Type}")
     };
-
-    private static string SanitizeFileName(string fileName)
-    {
-        var invalidChars = Path.GetInvalidFileNameChars();
-        return new string(fileName.Select(ch => invalidChars.Contains(ch) ? '_' : ch).ToArray());
-    }
 }
 
-// تغییر در کلاس ProjectAnalyzer برای نمایش اطلاعات کلی
-public sealed class ProjectAnalyzer : IProjectAnalyzer
+// Records and Enums
+public sealed record ProjectInfo(
+    string ProjectName,
+    string ProjectPath,
+    bool IsSdkStyle,
+    IEnumerable<ReferenceInfo> References);
+
+public sealed record ReferenceInfo(
+    ReferenceType Type,
+    string? Name = null,
+    string? Version = null,
+    string? Path = null);
+
+public enum ReferenceType
 {
-    // ... (فیلدها و constructor بدون تغییر)
-
-    public async Task AnalyzeProjectsAsync(string rootPath)
-    {
-        ArgumentException.ThrowIfNullOrEmpty(rootPath);
-
-        if (!Directory.Exists(rootPath))
-        {
-            throw new DirectoryNotFoundException("مسیر مورد نظر یافت نشد.");
-        }
-
-        _logger.LogInformation("شروع تحلیل پروژه‌ها در مسیر: {Path}", rootPath);
-
-        var projectFiles = _projectFinder.FindProjects(rootPath).ToList();
-        _logger.LogInformation("تعداد پروژه‌های یافت شده: {Count}", projectFiles.Count);
-
-        var tasks = projectFiles.Select(ProcessProjectAsync);
-        await Task.WhenAll(tasks);
-
-        _logger.LogInformation("تحلیل پروژه‌ها با موفقیت به پایان رسید.");
-    }
-
-    // ... (بقیه متدها بدون تغییر)
-}
-
-// اضافه کردن کد نمایش مسیر در انتهای برنامه اصلی
-try
-{
-    Console.WriteLine("ProjectReferenceMapper v1.0");
-    Console.WriteLine("یک ابزار برای نگاشت رفرنس‌های پروژه‌های سی‌شارپ");
-    Console.WriteLine("----------------------------------------");
-
-    Console.WriteLine("لطفاً مسیر پروژه را وارد کنید:");
-    var projectPath = Console.ReadLine();
-
-    await analyzer.AnalyzeProjectsAsync(projectPath);
-
-    var baseOutputPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Project Reference Mapper");
-    Console.WriteLine($"\nفایل‌های خروجی در مسیر زیر ایجاد شدند:");
-    Console.WriteLine(baseOutputPath);
-    
-    Console.WriteLine("\nPress any key to exit...");
-    Console.ReadKey();
-}
-catch (Exception ex)
-{
-    Console.WriteLine($"خطای غیرمنتظره: {ex.Message}");
-    Console.WriteLine("\nPress any key to exit...");
-    Console.ReadKey();
+    Package,
+    Project,
+    Assembly
 }
