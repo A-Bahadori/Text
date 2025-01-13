@@ -2,31 +2,33 @@
 
 public sealed class ReferenceWriter : IReferenceWriter
 {
-    private const string OutputFolderName = "Project Reference Mapper";
-    private readonly string _baseOutputPath;
+    private const string BaseOutputFolderName = "Project Reference Mapper";
+    private readonly string _currentRunPath;
     private readonly ILogger<ReferenceWriter> _logger;
 
     public ReferenceWriter(ILogger<ReferenceWriter> logger)
     {
         _logger = logger;
-        _baseOutputPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, OutputFolderName);
+        var timestamp = DateTime.Now.ToString("yyyy-MM-dd HH-mm-ss");
+        var baseOutputPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, BaseOutputFolderName);
+        _currentRunPath = Path.Combine(baseOutputPath, $"Run_{timestamp}");
         EnsureOutputDirectoryExists();
     }
 
     private void EnsureOutputDirectoryExists()
     {
-        if (!Directory.Exists(_baseOutputPath))
+        if (!Directory.Exists(_currentRunPath))
         {
-            Directory.CreateDirectory(_baseOutputPath);
-            _logger.LogInformation("پوشه خروجی ایجاد شد: {Path}", _baseOutputPath);
+            Directory.CreateDirectory(_currentRunPath);
+            _logger.LogInformation("پوشه خروجی برای این اجرا ایجاد شد: {Path}", _currentRunPath);
         }
     }
 
     public async Task WriteReferencesAsync(ProjectInfo projectInfo)
     {
-        var timestamp = DateTime.Now.ToString("yyyy-MM-dd HH-mm-ss");
-        var outputFileName = $"{projectInfo.ProjectName}_References_{timestamp}.txt";
-        var outputPath = Path.Combine(_baseOutputPath, outputFileName);
+        var sanitizedProjectName = SanitizeFileName(projectInfo.ProjectName);
+        var outputFileName = $"{sanitizedProjectName}_References.txt";
+        var outputPath = Path.Combine(_currentRunPath, outputFileName);
 
         var content = new List<string>
         {
@@ -43,6 +45,18 @@ public sealed class ReferenceWriter : IReferenceWriter
 
         content.AddRange(projectInfo.References.Select(FormatReference));
 
+        // اضافه کردن خلاصه آماری
+        content.AddRange(new[]
+        {
+            string.Empty,
+            "----------------------------------------",
+            "خلاصه آماری:",
+            $"تعداد کل رفرنس‌ها: {projectInfo.References.Count()}",
+            $"تعداد Package References: {projectInfo.References.Count(r => r.Type == ReferenceType.Package)}",
+            $"تعداد Project References: {projectInfo.References.Count(r => r.Type == ReferenceType.Project)}",
+            $"تعداد Assembly References: {projectInfo.References.Count(r => r.Type == ReferenceType.Assembly)}"
+        });
+
         await File.WriteAllLinesAsync(outputPath, content);
         _logger.LogInformation("فایل خروجی ایجاد شد: {Path}", outputPath);
     }
@@ -54,13 +68,64 @@ public sealed class ReferenceWriter : IReferenceWriter
         ReferenceType.Assembly => $"Assembly: {reference.Name}",
         _ => throw new ArgumentException($"نوع رفرنس نامعتبر: {reference.Type}")
     };
+
+    private static string SanitizeFileName(string fileName)
+    {
+        var invalidChars = Path.GetInvalidFileNameChars();
+        return new string(fileName.Select(ch => invalidChars.Contains(ch) ? '_' : ch).ToArray());
+    }
 }
 
-// ... (بقیه کد بدون تغییر)
+// تغییر در کلاس ProjectAnalyzer برای نمایش اطلاعات کلی
+public sealed class ProjectAnalyzer : IProjectAnalyzer
+{
+    // ... (فیلدها و constructor بدون تغییر)
 
-// در انتهای فایل، بعد از اتمام آنالیز:
-var outputPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Project Reference Mapper");
-Console.WriteLine($"\nفایل‌های خروجی در مسیر زیر ایجاد شدند:");
-Console.WriteLine(outputPath);
-Console.WriteLine("\nPress any key to exit...");
-Console.ReadKey();
+    public async Task AnalyzeProjectsAsync(string rootPath)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(rootPath);
+
+        if (!Directory.Exists(rootPath))
+        {
+            throw new DirectoryNotFoundException("مسیر مورد نظر یافت نشد.");
+        }
+
+        _logger.LogInformation("شروع تحلیل پروژه‌ها در مسیر: {Path}", rootPath);
+
+        var projectFiles = _projectFinder.FindProjects(rootPath).ToList();
+        _logger.LogInformation("تعداد پروژه‌های یافت شده: {Count}", projectFiles.Count);
+
+        var tasks = projectFiles.Select(ProcessProjectAsync);
+        await Task.WhenAll(tasks);
+
+        _logger.LogInformation("تحلیل پروژه‌ها با موفقیت به پایان رسید.");
+    }
+
+    // ... (بقیه متدها بدون تغییر)
+}
+
+// اضافه کردن کد نمایش مسیر در انتهای برنامه اصلی
+try
+{
+    Console.WriteLine("ProjectReferenceMapper v1.0");
+    Console.WriteLine("یک ابزار برای نگاشت رفرنس‌های پروژه‌های سی‌شارپ");
+    Console.WriteLine("----------------------------------------");
+
+    Console.WriteLine("لطفاً مسیر پروژه را وارد کنید:");
+    var projectPath = Console.ReadLine();
+
+    await analyzer.AnalyzeProjectsAsync(projectPath);
+
+    var baseOutputPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Project Reference Mapper");
+    Console.WriteLine($"\nفایل‌های خروجی در مسیر زیر ایجاد شدند:");
+    Console.WriteLine(baseOutputPath);
+    
+    Console.WriteLine("\nPress any key to exit...");
+    Console.ReadKey();
+}
+catch (Exception ex)
+{
+    Console.WriteLine($"خطای غیرمنتظره: {ex.Message}");
+    Console.WriteLine("\nPress any key to exit...");
+    Console.ReadKey();
+}
