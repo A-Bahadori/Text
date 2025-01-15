@@ -19,3 +19,24 @@ Directory.GetFiles(@"C:\YourProjectPath", "*.csproj", SearchOption.AllDirectorie
    // نمایش اطلاعات پروژه‌های WinForms
    .Select(file => $"نام پروژه: {Path.GetFileNameWithoutExtension(file)}\nمسیر: {file}")
    .Dump();
+
+
+Directory.GetFiles(@"C:\YourProjectPath", "*.csproj", SearchOption.AllDirectories)
+   // بررسی هر فایل پروژه
+   .Select(file => new 
+   { 
+       ProjectFile = file,
+       References = XDocument.Load(file)
+           .Descendants()
+           .Where(x => (x.Name.LocalName == "Reference" || x.Name.LocalName == "PackageReference") 
+               && x.Attribute("Include")?.Value?.Contains("Windows.Forms") == true)
+           .Select(x => x.Attribute("Include").Value)
+           .ToList()
+   })
+   .Where(x => x.References.Any())
+   // نمایش اطلاعات پروژه‌ها و رفرنس‌های آنها
+   .Select(x => 
+       $"نام پروژه: {Path.GetFileNameWithoutExtension(x.ProjectFile)}\n" +
+       $"مسیر: {x.ProjectFile}\n" +
+       $"رفرنس‌ها:\n{string.Join("\n", x.References.Select(r => $"- {r}"))}\n")
+   .Dump();
