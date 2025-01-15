@@ -40,3 +40,36 @@ Directory.GetFiles(@"C:\YourProjectPath", "*.csproj", SearchOption.AllDirectorie
        $"مسیر: {x.ProjectFile}\n" +
        $"رفرنس‌ها:\n{string.Join("\n", x.References.Select(r => $"- {r}"))}\n")
    .Dump();
+
+
+
+
+void Main()
+{
+    var referenceUsage = Directory.GetFiles(@"C:\Users\Admin\RiderProjects\BPMS\Source", "*.csproj", SearchOption.AllDirectories)
+        .Where(file => Path.GetFileName(file) != "ModelNamespace.csproj")
+        .Select(file => new
+        {
+            ProjectFile = file,
+            References = XDocument.Load(file)
+                .Descendants()
+                .Where(element =>
+                    element.Name.LocalName is "Reference" or "PackageReference" or "FrameworkReference" or "ProjectReference"
+                    && element.Attribute("Include") != null)
+                .Select(x => x.Attribute("Include")?.Value)
+                .ToList()
+        })
+        .Where(x => x.References.Any())
+        .SelectMany(x => x.References.Distinct().Select(r => new { Reference = r, Project = x.ProjectFile }))
+        .GroupBy(x => x.Reference)
+        .Select(g => new
+        {
+            Reference = g.Key,
+            UsageCount = g.Count(),
+            Projects = g.Select(x => Path.GetFileNameWithoutExtension(x.Project)).ToList()
+        })
+        .OrderByDescending(x => x.UsageCount)
+        .ToList();
+
+    referenceUsage.Dump(); // خروجی را در LINQPad نمایش می‌دهد
+}
