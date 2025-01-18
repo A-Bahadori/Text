@@ -1,128 +1,78 @@
-Directory.GetFiles(@"C:\Users\Admin\RiderProjects\BPMS\Source", "*.csproj", SearchOption.AllDirectories)
-    .Where(file => Path.GetFileName(file) != @"ModelNamespace.csproj")
-    .Select(file => new {
-        ProjectFile = file,
-        Document = XDocument.Load(file)
-    })
-    .Select(e => new
-    {
-        ProjectFile = e.ProjectFile,
-        References = e.Document
-            .Descendants()
-            .Where(element =>
-                element.LocalName is "Reference" or "PackageReference" or "FrameworkReference" or "ProjectReference"
-                && (
-                    // Microsoft Base Libraries
-                    element.Attribute("Include")?.Value?.Contains("System.Windows.Forms") == true ||
-                    element.Attribute("Include")?.Value?.Contains("WindowsForms") == true ||
-                    element.Attribute("Include")?.Value?.Contains("PresentationFramework") == true ||
-                    element.Attribute("Include")?.Value?.Contains("PresentationCore") == true ||
-                    element.Attribute("Include")?.Value?.Contains("WindowsBase") == true ||
-                    element.Attribute("Include")?.Value?.Contains("System.Drawing") == true ||
-                    element.Attribute("Include")?.Value?.Contains("System.Windows.Controls") == true ||
-                    
-                    // Major Commercial Suites
-                    element.Attribute("Include")?.Value?.Contains("DevExpress") == true ||
-                    element.Attribute("Include")?.Value?.Contains("Telerik") == true ||
-                    element.Attribute("Include")?.Value?.Contains("Infragistics") == true ||
-                    element.Attribute("Include")?.Value?.Contains("ComponentOne") == true ||
-                    element.Attribute("Include")?.Value?.Contains("Syncfusion") == true ||
-                    element.Attribute("Include")?.Value?.Contains("Janus") == true ||
-                    element.Attribute("Include")?.Value?.Contains("GrapeCity") == true ||
-                    element.Attribute("Include")?.Value?.Contains("Xceed") == true ||
-                    element.Attribute("Include")?.Value?.Contains("ComponentFactory") == true ||
-                    element.Attribute("Include")?.Value?.Contains("MetroFramework") == true ||
-                    element.Attribute("Include")?.Value?.Contains("Krypton") == true ||
-                    element.Attribute("Include")?.Value?.Contains("RadControls") == true ||
-                    element.Attribute("Include")?.Value?.Contains("ActiPro") == true ||
-                    element.Attribute("Include")?.Value?.Contains("ComponentArt") == true ||
-                    element.Attribute("Include")?.Value?.Contains("NetAdvantage") == true ||
-                    
-                    // Modern UI Frameworks
-                    element.Attribute("Include")?.Value?.Contains("MahApps") == true ||
-                    element.Attribute("Include")?.Value?.Contains("MaterialDesignThemes") == true ||
-                    element.Attribute("Include")?.Value?.Contains("ModernUI") == true ||
-                    element.Attribute("Include")?.Value?.Contains("HandyControl") == true ||
-                    element.Attribute("Include")?.Value?.Contains("FirstFloor.ModernUI") == true ||
-                    element.Attribute("Include")?.Value?.Contains("Elysium") == true ||
-                    element.Attribute("Include")?.Value?.Contains("Dragablz") == true ||
-                    element.Attribute("Include")?.Value?.Contains("ControlzEx") == true ||
-                    element.Attribute("Include")?.Value?.Contains("Prism") == true ||
-                    element.Attribute("Include")?.Value?.Contains("Caliburn.Micro") == true ||
-                    
-                    // Charting and Visualization
-                    element.Attribute("Include")?.Value?.Contains("LiveCharts") == true ||
-                    element.Attribute("Include")?.Value?.Contains("OxyPlot") == true ||
-                    element.Attribute("Include")?.Value?.Contains("ScottPlot") == true ||
-                    element.Attribute("Include")?.Value?.Contains("Steema") == true ||
+ // Awesome WinForms - Controls & Components
+                    element.Attribute("Include")?.Value?.Contains("Kimtoo.NavigationMenu") == true ||
+                    element.Attribute("Include")?.Value?.Contains("ScintillaNET") == true ||
+                    element.Attribute("Include")?.Value?.Contains("ObjectListView") == true ||
+                    element.Attribute("Include")?.Value?.Contains("AGauge") == true ||
                     element.Attribute("Include")?.Value?.Contains("ZedGraph") == true ||
-                    element.Attribute("Include")?.Value?.Contains("DataVisualization") == true ||
-                    element.Attribute("Include")?.Value?.Contains("Sparrow.Chart") == true ||
-                    element.Attribute("Include")?.Value?.Contains("TeeChart") == true ||
+                    element.Attribute("Include")?.Value?.Contains("Cyotek.Windows.Forms") == true ||
+                    element.Attribute("Include")?.Value?.Contains("TSkin") == true ||
+                    element.Attribute("Include")?.Value?.Contains("DataJuggler.Win.Controls") == true ||
+                    element.Attribute("Include")?.Value?.Contains("Ai.Control") == true ||
+                    element.Attribute("Include")?.Value?.Contains("CButtonLib") == true ||
+                    element.Attribute("Include")?.Value?.Contains("ReaLTaiizor") == true ||
+                    element.Attribute("Include")?.Value?.Contains("PushButtonEx") == true ||
+                    element.Attribute("Include")?.Value?.Contains("XanderUI") == true ||
+                    element.Attribute("Include")?.Value?.Contains("LollipopUI") == true ||
+                    element.Attribute("Include")?.Value?.Contains("AltoControls") == true ||
+                    element.Attribute("Include")?.Value?.Contains("ZBobb.AlphaBlendTextBox") == true ||
+                    element.Attribute("Include")?.Value?.Contains("TranslucentTB") == true ||
+                    element.Attribute("Include")?.Value?.Contains("WinFormControls") == true ||
+                    element.Attribute("Include")?.Value?.Contains("FlatNumericUpDown") == true ||
+                    element.Attribute("Include")?.Value?.Contains("DarkUI") == true ||
                     
-                    // Reporting Tools
-                    element.Attribute("Include")?.Value?.Contains("Stimulsoft") == true ||
-                    element.Attribute("Include")?.Value?.Contains("ActiveReports") == true ||
-                    element.Attribute("Include")?.Value?.Contains("FastReport") == true ||
-                    element.Attribute("Include")?.Value?.Contains("Dundas") == true ||
-                    element.Attribute("Include")?.Value?.Contains("DevExpress.XtraReports") == true ||
-                    element.Attribute("Include")?.Value?.Contains("Telerik.Reporting") == true ||
-                    element.Attribute("Include")?.Value?.Contains("Bold.Reports") == true ||
+                    // Awesome WinForms - Viewers & Editors
+                    element.Attribute("Include")?.Value?.Contains("PdfiumViewer") == true ||
+                    element.Attribute("Include")?.Value?.Contains("GMap.NET") == true ||
+                    element.Attribute("Include")?.Value?.Contains("ImageGlass") == true ||
+                    element.Attribute("Include")?.Value?.Contains("PDFView") == true ||
+                    element.Attribute("Include")?.Value?.Contains("Ghostscript.NET") == true ||
+                    element.Attribute("Include")?.Value?.Contains("WebView") == true ||
+                    element.Attribute("Include")?.Value?.Contains("CefSharp") == true ||
+                    element.Attribute("Include")?.Value?.Contains("Microsoft.Web.WebView2") == true ||
                     
-                    // Document Processing
-                    element.Attribute("Include")?.Value?.Contains("TX Text Control") == true ||
-                    element.Attribute("Include")?.Value?.Contains("Aspose") == true ||
-                    element.Attribute("Include")?.Value?.Contains("Spire") == true ||
-                    element.Attribute("Include")?.Value?.Contains("GemBox") == true ||
+                    // Awesome WinForms - Data Visualization
+                    element.Attribute("Include")?.Value?.Contains("AutoCharting") == true ||
+                    element.Attribute("Include")?.Value?.Contains("Microcharts") == true ||
+                    element.Attribute("Include")?.Value?.Contains("LineGraph") == true ||
+                    element.Attribute("Include")?.Value?.Contains("Chart3DControl") == true ||
                     
-                    // Specialized Controls & Components
-                    element.Attribute("Include")?.Value?.Contains("SfDataGrid") == true ||
-                    element.Attribute("Include")?.Value?.Contains("WPFToolkit") == true ||
-                    element.Attribute("Include")?.Value?.Contains("Fluent.Ribbon") == true ||
-                    element.Attribute("Include")?.Value?.Contains("AvalonDock") == true ||
-                    element.Attribute("Include")?.Value?.Contains("DotNetBar") == true ||
-                    element.Attribute("Include")?.Value?.Contains("Extended.Wpf.Toolkit") == true ||
-                    element.Attribute("Include")?.Value?.Contains("PropertyTools") == true ||
-                    element.Attribute("Include")?.Value?.Contains("ReoGrid") == true ||
-                    element.Attribute("Include")?.Value?.Contains("Callisto") == true ||
-                    element.Attribute("Include")?.Value?.Contains("Gemini") == true ||
-                    element.Attribute("Include")?.Value?.Contains("AvalonEdit") == true ||
-                    element.Attribute("Include")?.Value?.Contains("WindowsAPICodePack") == true ||
-                    element.Attribute("Include")?.Value?.Contains("WPF.MDI") == true ||
+                    // Awesome WinForms - Docking & Layout
+                    element.Attribute("Include")?.Value?.Contains("DockPanelSuite") == true ||
+                    element.Attribute("Include")?.Value?.Contains("WeifenLuo.WinFormsUI") == true ||
+                    element.Attribute("Include")?.Value?.Contains("MdiTabControl") == true ||
+                    element.Attribute("Include")?.Value?.Contains("FlowLayoutPanel") == true ||
                     
-                    // Additional UI Libraries
-                    element.Attribute("Include")?.Value?.Contains("Gu.Wpf") == true ||
-                    element.Attribute("Include")?.Value?.Contains("NationalInstruments.UI") == true ||
-                    element.Attribute("Include")?.Value?.Contains("Hardcodet.NotifyIcon") == true ||
-                    element.Attribute("Include")?.Value?.Contains("WindowsFormsAero") == true ||
-                    element.Attribute("Include")?.Value?.Contains("WPFSpark") == true ||
-                    element.Attribute("Include")?.Value?.Contains("Clarity") == true ||
-                    element.Attribute("Include")?.Value?.Contains("Actipro.WPF") == true ||
-                    element.Attribute("Include")?.Value?.Contains("Mindscape.WpfElements") == true ||
-                    element.Attribute("Include")?.Value?.Contains("Nevron") == true ||
-                    element.Attribute("Include")?.Value?.Contains("SunnyUI") == true ||
-                    element.Attribute("Include")?.Value?.Contains("WinFormAnimation") == true ||
-                    element.Attribute("Include")?.Value?.Contains("Bunifu") == true ||
-                    element.Attribute("Include")?.Value?.Contains("MaterialSkin") == true ||
-                    element.Attribute("Include")?.Value?.Contains("CircularProgressBar") == true ||
-                    element.Attribute("Include")?.Value?.Contains("AForge") == true ||
-                    element.Attribute("Include")?.Value?.Contains("WinForms.DataVisualization") == true ||
+                    // Awesome WinForms - Ribbons
+                    element.Attribute("Include")?.Value?.Contains("System.Windows.Forms.Ribbon") == true ||
+                    element.Attribute("Include")?.Value?.Contains("RibbonWinForms") == true ||
                     
-                    // Generic UI Keywords
-                    element.Attribute("Include")?.Value?.Contains("UI.WPF") == true ||
-                    element.Attribute("Include")?.Value?.Contains("Controls.WPF") == true ||
-                    element.Attribute("Include")?.Value?.Contains("Windows.UI") == true ||
-                    element.Attribute("Include")?.Value?.Contains(".Controls.") == true ||
-                    element.Attribute("Include")?.Value?.Contains(".UI.") == true ||
-                    element.Attribute("Include")?.Value?.Contains("Toolkit") == true
-                )
-            )
-            .Select(x => x.Attribute("Include")?.Value ?? x.Attribute("Update")?.Value)
-            .ToList(),
-    })
-    .Where(x => x.References.Any())
-    .Select(x => new {
-        ProjectName = Path.GetFileNameWithoutExtension(x.ProjectFile),
-        Path = x.ProjectFile,
-        Reference = x.References.Select(r => r),
-    });
+                    // Awesome WinForms - Effects & Animations
+                    element.Attribute("Include")?.Value?.Contains("Transition") == true ||
+                    element.Attribute("Include")?.Value?.Contains("TransitionManager") == true ||
+                    element.Attribute("Include")?.Value?.Contains("AnimatorNS") == true ||
+                    element.Attribute("Include")?.Value?.Contains("Formanimator") == true ||
+                    
+                    // Awesome WinForms - Notifications
+                    element.Attribute("Include")?.Value?.Contains("NotificationWindow") == true ||
+                    element.Attribute("Include")?.Value?.Contains("Tulpep.NotificationWindow") == true ||
+                    element.Attribute("Include")?.Value?.Contains("ToastNotifications") == true ||
+                    
+                    // Awesome WinForms - Trees & Grids
+                    element.Attribute("Include")?.Value?.Contains("TreeViewAdv") == true ||
+                    element.Attribute("Include")?.Value?.Contains("AdvancedDataGridView") == true ||
+                    element.Attribute("Include")?.Value?.Contains("FastColoredTextBox") == true ||
+                    element.Attribute("Include")?.Value?.Contains("PropertyGrid") == true ||
+                    
+                    // Awesome WinForms - Theming
+                    element.Attribute("Include")?.Value?.Contains("WinFormTheme") == true ||
+                    element.Attribute("Include")?.Value?.Contains("VisualStyler") == true ||
+                    element.Attribute("Include")?.Value?.Contains("Office2007Renderer") == true ||
+                    element.Attribute("Include")?.Value?.Contains("FlatStyle") == true ||
+                    
+                    // Awesome WinForms - Miscellaneous
+                    element.Attribute("Include")?.Value?.Contains("Equin.ApplicationFramework") == true ||
+                    element.Attribute("Include")?.Value?.Contains("SmartThreadPool") == true ||
+                    element.Attribute("Include")?.Value?.Contains("Win32Interop") == true ||
+                    element.Attribute("Include")?.Value?.Contains("WinForms.PowerTools") == true ||
+                    element.Attribute("Include")?.Value?.Contains("MetroModernUI") == true ||
+                    element.Attribute("Include")?.Value?.Contains("WinCustomControls") == true
