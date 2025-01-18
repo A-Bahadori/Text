@@ -1,75 +1,128 @@
-Directory.GetFiles(@"C:\YourProjectPath", "*.csproj", SearchOption.AllDirectories)
-    .Select(file => new { ProjectFile = file, Doc = XDocument.Load(file) })
-    .Where(x => x.Doc.Descendants().Any(d => (d.Name.LocalName is "Reference" or "PackageReference" or "FrameworkReference") 
-        && (d.Attribute("Include")?.Value?.Contains("Windows.Forms", StringComparison.OrdinalIgnoreCase) ?? false)))
-	.Select(x => $"\nپروژه {Path.GetFileNameWithoutExtension(x.ProjectFile)}:\nمسیر: {x.ProjectFile}")
-	.Dump();
-
-
-
-Directory.GetFiles(@"C:\YourProjectPath", "*.csproj", SearchOption.AllDirectories)
-   // بررسی هر فایل پروژه
-   .Where(file => XDocument.Load(file)
-	   // جستجوی رفرنس‌های Windows.Forms
-	   .Descendants()
-	   .Any(element =>
-		   (element.Name.LocalName == "Reference" || element.Name.LocalName == "PackageReference") &&
-		   element.Attribute("Include")?.Value?.Contains("Windows.Forms") == true
-	   ))
-   // نمایش اطلاعات پروژه‌های WinForms
-   .Select(file => $"نام پروژه: {Path.GetFileNameWithoutExtension(file)}\nمسیر: {file}")
-   .Dump();
-
-
-Directory.GetFiles(@"C:\YourProjectPath", "*.csproj", SearchOption.AllDirectories)
-   // بررسی هر فایل پروژه
-   .Select(file => new 
-   { 
-       ProjectFile = file,
-       References = XDocument.Load(file)
-           .Descendants()
-           .Where(x => (x.Name.LocalName == "Reference" || x.Name.LocalName == "PackageReference") 
-               && x.Attribute("Include")?.Value?.Contains("Windows.Forms") == true)
-           .Select(x => x.Attribute("Include").Value)
-           .ToList()
-   })
-   .Where(x => x.References.Any())
-   // نمایش اطلاعات پروژه‌ها و رفرنس‌های آنها
-   .Select(x => 
-       $"نام پروژه: {Path.GetFileNameWithoutExtension(x.ProjectFile)}\n" +
-       $"مسیر: {x.ProjectFile}\n" +
-       $"رفرنس‌ها:\n{string.Join("\n", x.References.Select(r => $"- {r}"))}\n")
-   .Dump();
-
-
-
-
-void Main()
-{
-    var referenceUsage = Directory.GetFiles(@"C:\Users\Admin\RiderProjects\BPMS\Source", "*.csproj", SearchOption.AllDirectories)
-        .Where(file => Path.GetFileName(file) != "ModelNamespace.csproj")
-        .Select(file => new
-        {
-            ProjectFile = file,
-            References = XDocument.Load(file)
-                .Descendants()
-                .Where(element =>
-                    element.Name.LocalName is "Reference" or "PackageReference" or "FrameworkReference" or "ProjectReference"
-                    && element.Attribute("Include") != null)
-                .Select(x => x.Attribute("Include")?.Value)
-                .ToList()
-        })
-        .Where(x => x.References.Any())
-        .SelectMany(x => x.References.Distinct().Select(r => new { Reference = r, Project = x.ProjectFile }))
-        .GroupBy(x => x.Reference)
-        .Select(g => new
-        {
-            Reference = g.Key,
-            UsageCount = g.Count(),
-            Projects = g.Select(x => Path.GetFileNameWithoutExtension(x.Project)).ToList()
-        })
-        .OrderByDescending(x => x.UsageCount)
-        .ToList();
-
-    referenceUsage.Dump(); // خروجی را در LINQPad نمایش می‌دهد
-}
+Directory.GetFiles(@"C:\Users\Admin\RiderProjects\BPMS\Source", "*.csproj", SearchOption.AllDirectories)
+    .Where(file => Path.GetFileName(file) != @"ModelNamespace.csproj")
+    .Select(file => new {
+        ProjectFile = file,
+        Document = XDocument.Load(file)
+    })
+    .Select(e => new
+    {
+        ProjectFile = e.ProjectFile,
+        References = e.Document
+            .Descendants()
+            .Where(element =>
+                element.LocalName is "Reference" or "PackageReference" or "FrameworkReference" or "ProjectReference"
+                && (
+                    // Microsoft Base Libraries
+                    element.Attribute("Include")?.Value?.Contains("System.Windows.Forms") == true ||
+                    element.Attribute("Include")?.Value?.Contains("WindowsForms") == true ||
+                    element.Attribute("Include")?.Value?.Contains("PresentationFramework") == true ||
+                    element.Attribute("Include")?.Value?.Contains("PresentationCore") == true ||
+                    element.Attribute("Include")?.Value?.Contains("WindowsBase") == true ||
+                    element.Attribute("Include")?.Value?.Contains("System.Drawing") == true ||
+                    element.Attribute("Include")?.Value?.Contains("System.Windows.Controls") == true ||
+                    
+                    // Major Commercial Suites
+                    element.Attribute("Include")?.Value?.Contains("DevExpress") == true ||
+                    element.Attribute("Include")?.Value?.Contains("Telerik") == true ||
+                    element.Attribute("Include")?.Value?.Contains("Infragistics") == true ||
+                    element.Attribute("Include")?.Value?.Contains("ComponentOne") == true ||
+                    element.Attribute("Include")?.Value?.Contains("Syncfusion") == true ||
+                    element.Attribute("Include")?.Value?.Contains("Janus") == true ||
+                    element.Attribute("Include")?.Value?.Contains("GrapeCity") == true ||
+                    element.Attribute("Include")?.Value?.Contains("Xceed") == true ||
+                    element.Attribute("Include")?.Value?.Contains("ComponentFactory") == true ||
+                    element.Attribute("Include")?.Value?.Contains("MetroFramework") == true ||
+                    element.Attribute("Include")?.Value?.Contains("Krypton") == true ||
+                    element.Attribute("Include")?.Value?.Contains("RadControls") == true ||
+                    element.Attribute("Include")?.Value?.Contains("ActiPro") == true ||
+                    element.Attribute("Include")?.Value?.Contains("ComponentArt") == true ||
+                    element.Attribute("Include")?.Value?.Contains("NetAdvantage") == true ||
+                    
+                    // Modern UI Frameworks
+                    element.Attribute("Include")?.Value?.Contains("MahApps") == true ||
+                    element.Attribute("Include")?.Value?.Contains("MaterialDesignThemes") == true ||
+                    element.Attribute("Include")?.Value?.Contains("ModernUI") == true ||
+                    element.Attribute("Include")?.Value?.Contains("HandyControl") == true ||
+                    element.Attribute("Include")?.Value?.Contains("FirstFloor.ModernUI") == true ||
+                    element.Attribute("Include")?.Value?.Contains("Elysium") == true ||
+                    element.Attribute("Include")?.Value?.Contains("Dragablz") == true ||
+                    element.Attribute("Include")?.Value?.Contains("ControlzEx") == true ||
+                    element.Attribute("Include")?.Value?.Contains("Prism") == true ||
+                    element.Attribute("Include")?.Value?.Contains("Caliburn.Micro") == true ||
+                    
+                    // Charting and Visualization
+                    element.Attribute("Include")?.Value?.Contains("LiveCharts") == true ||
+                    element.Attribute("Include")?.Value?.Contains("OxyPlot") == true ||
+                    element.Attribute("Include")?.Value?.Contains("ScottPlot") == true ||
+                    element.Attribute("Include")?.Value?.Contains("Steema") == true ||
+                    element.Attribute("Include")?.Value?.Contains("ZedGraph") == true ||
+                    element.Attribute("Include")?.Value?.Contains("DataVisualization") == true ||
+                    element.Attribute("Include")?.Value?.Contains("Sparrow.Chart") == true ||
+                    element.Attribute("Include")?.Value?.Contains("TeeChart") == true ||
+                    
+                    // Reporting Tools
+                    element.Attribute("Include")?.Value?.Contains("Stimulsoft") == true ||
+                    element.Attribute("Include")?.Value?.Contains("ActiveReports") == true ||
+                    element.Attribute("Include")?.Value?.Contains("FastReport") == true ||
+                    element.Attribute("Include")?.Value?.Contains("Dundas") == true ||
+                    element.Attribute("Include")?.Value?.Contains("DevExpress.XtraReports") == true ||
+                    element.Attribute("Include")?.Value?.Contains("Telerik.Reporting") == true ||
+                    element.Attribute("Include")?.Value?.Contains("Bold.Reports") == true ||
+                    
+                    // Document Processing
+                    element.Attribute("Include")?.Value?.Contains("TX Text Control") == true ||
+                    element.Attribute("Include")?.Value?.Contains("Aspose") == true ||
+                    element.Attribute("Include")?.Value?.Contains("Spire") == true ||
+                    element.Attribute("Include")?.Value?.Contains("GemBox") == true ||
+                    
+                    // Specialized Controls & Components
+                    element.Attribute("Include")?.Value?.Contains("SfDataGrid") == true ||
+                    element.Attribute("Include")?.Value?.Contains("WPFToolkit") == true ||
+                    element.Attribute("Include")?.Value?.Contains("Fluent.Ribbon") == true ||
+                    element.Attribute("Include")?.Value?.Contains("AvalonDock") == true ||
+                    element.Attribute("Include")?.Value?.Contains("DotNetBar") == true ||
+                    element.Attribute("Include")?.Value?.Contains("Extended.Wpf.Toolkit") == true ||
+                    element.Attribute("Include")?.Value?.Contains("PropertyTools") == true ||
+                    element.Attribute("Include")?.Value?.Contains("ReoGrid") == true ||
+                    element.Attribute("Include")?.Value?.Contains("Callisto") == true ||
+                    element.Attribute("Include")?.Value?.Contains("Gemini") == true ||
+                    element.Attribute("Include")?.Value?.Contains("AvalonEdit") == true ||
+                    element.Attribute("Include")?.Value?.Contains("WindowsAPICodePack") == true ||
+                    element.Attribute("Include")?.Value?.Contains("WPF.MDI") == true ||
+                    
+                    // Additional UI Libraries
+                    element.Attribute("Include")?.Value?.Contains("Gu.Wpf") == true ||
+                    element.Attribute("Include")?.Value?.Contains("NationalInstruments.UI") == true ||
+                    element.Attribute("Include")?.Value?.Contains("Hardcodet.NotifyIcon") == true ||
+                    element.Attribute("Include")?.Value?.Contains("WindowsFormsAero") == true ||
+                    element.Attribute("Include")?.Value?.Contains("WPFSpark") == true ||
+                    element.Attribute("Include")?.Value?.Contains("Clarity") == true ||
+                    element.Attribute("Include")?.Value?.Contains("Actipro.WPF") == true ||
+                    element.Attribute("Include")?.Value?.Contains("Mindscape.WpfElements") == true ||
+                    element.Attribute("Include")?.Value?.Contains("Nevron") == true ||
+                    element.Attribute("Include")?.Value?.Contains("SunnyUI") == true ||
+                    element.Attribute("Include")?.Value?.Contains("WinFormAnimation") == true ||
+                    element.Attribute("Include")?.Value?.Contains("Bunifu") == true ||
+                    element.Attribute("Include")?.Value?.Contains("MaterialSkin") == true ||
+                    element.Attribute("Include")?.Value?.Contains("CircularProgressBar") == true ||
+                    element.Attribute("Include")?.Value?.Contains("AForge") == true ||
+                    element.Attribute("Include")?.Value?.Contains("WinForms.DataVisualization") == true ||
+                    
+                    // Generic UI Keywords
+                    element.Attribute("Include")?.Value?.Contains("UI.WPF") == true ||
+                    element.Attribute("Include")?.Value?.Contains("Controls.WPF") == true ||
+                    element.Attribute("Include")?.Value?.Contains("Windows.UI") == true ||
+                    element.Attribute("Include")?.Value?.Contains(".Controls.") == true ||
+                    element.Attribute("Include")?.Value?.Contains(".UI.") == true ||
+                    element.Attribute("Include")?.Value?.Contains("Toolkit") == true
+                )
+            )
+            .Select(x => x.Attribute("Include")?.Value ?? x.Attribute("Update")?.Value)
+            .ToList(),
+    })
+    .Where(x => x.References.Any())
+    .Select(x => new {
+        ProjectName = Path.GetFileNameWithoutExtension(x.ProjectFile),
+        Path = x.ProjectFile,
+        Reference = x.References.Select(r => r),
+    });
