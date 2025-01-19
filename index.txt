@@ -76,3 +76,5 @@
                     element.Attribute("Include")?.Value?.Contains("WinForms.PowerTools") == true ||
                     element.Attribute("Include")?.Value?.Contains("MetroModernUI") == true ||
                     element.Attribute("Include")?.Value?.Contains("WinCustomControls") == true
+
+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
