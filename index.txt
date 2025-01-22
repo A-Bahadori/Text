@@ -1,32 +1,12 @@
 Directory.GetFiles(@"C:\Users\Admin\RiderProjects\BPMS\Source", "*.csproj", SearchOption.AllDirectories)
     .Select(csprojFile => new
     {
-        CsprojProjectFile = Path.GetFileName(csprojFile),
-        CsprojPath = csprojFile
+        Project = Path.GetFileName(csprojFile),
+        Path = csprojFile
     })
-    .Select(csproj => new
-    {
-        csproj.CsprojProjectFile,
-        csproj.CsprojPath,
-        SolutionProjects = XDocument.Load(@"C:\Users\Admin\RiderProjects\BPMS\Source\Ray.BPMS.slnx")
-            .Descendants()
-            .Where(element =>
-                element.Name.LocalName == "Project" &&
-                element.Attribute("Path") != null)
-            .Select(e => new
-            {
-                Project = Path.GetFileName(e.Attribute("Path")?.Value),
-                ProjectName = Path.GetFileNameWithoutExtension(e.Attribute("Path")?.Value),
-                Path = e.Attribute("Path")?.Value,
-                Type = e.Attribute("Type")?.Value
-            })
-            .Where(project => project.Project == csproj.CsprojProjectFile)
-    })
-    .SelectMany(result => result.SolutionProjects)
-    .Select(project => new
-    {
-        project.Project,
-        project.ProjectName,
-        project.Type
-    })
+    .Where(e => !XDocument.Load(@"C:\Users\Admin\RiderProjects\BPMS\Source\Ray.BPMS.slnx")
+        .Descendants()
+        .Where(element => element.Name.LocalName == "Project" && element.Attribute("Path")?.Value.Any() == true)
+        .Select(s => Path.GetFileName(s.Attribute("Path")?.Value))
+        .Any(path => path == e.Project))
     .Dump();
