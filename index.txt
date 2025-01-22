@@ -1,79 +1,32 @@
- // Awesome WinForms - Controls & Components
-                    element.Attribute("Include")?.Value?.Contains("Kimtoo.NavigationMenu") == true ||
-                    element.Attribute("Include")?.Value?.Contains("ScintillaNET") == true ||
-                    element.Attribute("Include")?.Value?.Contains("ObjectListView") == true ||
-                    element.Attribute("Include")?.Value?.Contains("AGauge") == true ||
-                    element.Attribute("Include")?.Value?.Contains("ZedGraph") == true ||
-                    element.Attribute("Include")?.Value?.Contains("Cyotek.Windows.Forms") == true ||
-                    element.Attribute("Include")?.Value?.Contains("TSkin") == true ||
-                    element.Attribute("Include")?.Value?.Contains("DataJuggler.Win.Controls") == true ||
-                    element.Attribute("Include")?.Value?.Contains("Ai.Control") == true ||
-                    element.Attribute("Include")?.Value?.Contains("CButtonLib") == true ||
-                    element.Attribute("Include")?.Value?.Contains("ReaLTaiizor") == true ||
-                    element.Attribute("Include")?.Value?.Contains("PushButtonEx") == true ||
-                    element.Attribute("Include")?.Value?.Contains("XanderUI") == true ||
-                    element.Attribute("Include")?.Value?.Contains("LollipopUI") == true ||
-                    element.Attribute("Include")?.Value?.Contains("AltoControls") == true ||
-                    element.Attribute("Include")?.Value?.Contains("ZBobb.AlphaBlendTextBox") == true ||
-                    element.Attribute("Include")?.Value?.Contains("TranslucentTB") == true ||
-                    element.Attribute("Include")?.Value?.Contains("WinFormControls") == true ||
-                    element.Attribute("Include")?.Value?.Contains("FlatNumericUpDown") == true ||
-                    element.Attribute("Include")?.Value?.Contains("DarkUI") == true ||
-                    
-                    // Awesome WinForms - Viewers & Editors
-                    element.Attribute("Include")?.Value?.Contains("PdfiumViewer") == true ||
-                    element.Attribute("Include")?.Value?.Contains("GMap.NET") == true ||
-                    element.Attribute("Include")?.Value?.Contains("ImageGlass") == true ||
-                    element.Attribute("Include")?.Value?.Contains("PDFView") == true ||
-                    element.Attribute("Include")?.Value?.Contains("Ghostscript.NET") == true ||
-                    element.Attribute("Include")?.Value?.Contains("WebView") == true ||
-                    element.Attribute("Include")?.Value?.Contains("CefSharp") == true ||
-                    element.Attribute("Include")?.Value?.Contains("Microsoft.Web.WebView2") == true ||
-                    
-                    // Awesome WinForms - Data Visualization
-                    element.Attribute("Include")?.Value?.Contains("AutoCharting") == true ||
-                    element.Attribute("Include")?.Value?.Contains("Microcharts") == true ||
-                    element.Attribute("Include")?.Value?.Contains("LineGraph") == true ||
-                    element.Attribute("Include")?.Value?.Contains("Chart3DControl") == true ||
-                    
-                    // Awesome WinForms - Docking & Layout
-                    element.Attribute("Include")?.Value?.Contains("DockPanelSuite") == true ||
-                    element.Attribute("Include")?.Value?.Contains("WeifenLuo.WinFormsUI") == true ||
-                    element.Attribute("Include")?.Value?.Contains("MdiTabControl") == true ||
-                    element.Attribute("Include")?.Value?.Contains("FlowLayoutPanel") == true ||
-                    
-                    // Awesome WinForms - Ribbons
-                    element.Attribute("Include")?.Value?.Contains("System.Windows.Forms.Ribbon") == true ||
-                    element.Attribute("Include")?.Value?.Contains("RibbonWinForms") == true ||
-                    
-                    // Awesome WinForms - Effects & Animations
-                    element.Attribute("Include")?.Value?.Contains("Transition") == true ||
-                    element.Attribute("Include")?.Value?.Contains("TransitionManager") == true ||
-                    element.Attribute("Include")?.Value?.Contains("AnimatorNS") == true ||
-                    element.Attribute("Include")?.Value?.Contains("Formanimator") == true ||
-                    
-                    // Awesome WinForms - Notifications
-                    element.Attribute("Include")?.Value?.Contains("NotificationWindow") == true ||
-                    element.Attribute("Include")?.Value?.Contains("Tulpep.NotificationWindow") == true ||
-                    element.Attribute("Include")?.Value?.Contains("ToastNotifications") == true ||
-                    
-                    // Awesome WinForms - Trees & Grids
-                    element.Attribute("Include")?.Value?.Contains("TreeViewAdv") == true ||
-                    element.Attribute("Include")?.Value?.Contains("AdvancedDataGridView") == true ||
-                    element.Attribute("Include")?.Value?.Contains("FastColoredTextBox") == true ||
-                    element.Attribute("Include")?.Value?.Contains("PropertyGrid") == true ||
-                    
-                    // Awesome WinForms - Theming
-                    element.Attribute("Include")?.Value?.Contains("WinFormTheme") == true ||
-                    element.Attribute("Include")?.Value?.Contains("VisualStyler") == true ||
-                    element.Attribute("Include")?.Value?.Contains("Office2007Renderer") == true ||
-                    element.Attribute("Include")?.Value?.Contains("FlatStyle") == true ||
-                    
-                    // Awesome WinForms - Miscellaneous
-                    element.Attribute("Include")?.Value?.Contains("Equin.ApplicationFramework") == true ||
-                    element.Attribute("Include")?.Value?.Contains("SmartThreadPool") == true ||
-                    element.Attribute("Include")?.Value?.Contains("Win32Interop") == true ||
-                    element.Attribute("Include")?.Value?.Contains("WinForms.PowerTools") == true ||
-                    element.Attribute("Include")?.Value?.Contains("MetroModernUI") == true ||
-                    element.Attribute("Include")?.Value?.Contains("WinCustomControls") == true
-
+Directory.GetFiles(@"C:\Users\Admin\RiderProjects\BPMS\Source", "*.csproj", SearchOption.AllDirectories)
+    .Select(csprojFile => new
+    {
+        CsprojProjectFile = Path.GetFileName(csprojFile),
+        CsprojPath = csprojFile
+    })
+    .Select(csproj => new
+    {
+        csproj.CsprojProjectFile,
+        csproj.CsprojPath,
+        SolutionProjects = XDocument.Load(@"C:\Users\Admin\RiderProjects\BPMS\Source\Ray.BPMS.slnx")
+            .Descendants()
+            .Where(element =>
+                element.Name.LocalName == "Project" &&
+                element.Attribute("Path") != null)
+            .Select(e => new
+            {
+                Project = Path.GetFileName(e.Attribute("Path")?.Value),
+                ProjectName = Path.GetFileNameWithoutExtension(e.Attribute("Path")?.Value),
+                Path = e.Attribute("Path")?.Value,
+                Type = e.Attribute("Type")?.Value
+            })
+            .Where(project => project.Project == csproj.CsprojProjectFile)
+    })
+    .SelectMany(result => result.SolutionProjects)
+    .Select(project => new
+    {
+        project.Project,
+        project.ProjectName,
+        project.Type
+    })
+    .Dump();
