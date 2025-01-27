@@ -1,12 +1,5 @@
-Directory.GetFiles(@"C:\Users\Admin\RiderProjects\BPMS\Source", "*.csproj", SearchOption.AllDirectories)
-    .Select(csprojFile => new
-    {
-        Project = Path.GetFileName(csprojFile),
-        Path = csprojFile
-    })
-    .Where(e => !XDocument.Load(@"C:\Users\Admin\RiderProjects\BPMS\Source\Ray.BPMS.slnx")
-        .Descendants()
-        .Where(element => element.Name.LocalName == "Project" && element.Attribute("Path")?.Value.Any() == true)
-        .Select(s => Path.GetFileName(s.Attribute("Path")?.Value))
-        .Any(path => path == e.Project))
-    .Dump();
+<ItemGroup>
+    <Reference Include="System.Web.Mvc">
+      <HintPath>$(MSBuildProgramFiles32)\Microsoft ASP.NET\ASP.NET MVC 5\Assemblies\System.Web.Mvc.dll</HintPath>
+    </Reference>
+  </ItemGroup>
