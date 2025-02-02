@@ -1,2 +1,11 @@
-msbuild MyOwinWebApp.csproj /p:Configuration=Debug /p:Platform="Any CPU" /t:Publish /p:PublishDir="C:\Publish\MyOwinWebApp\"
-"C:\Program Files\IIS Express\iisexpress.exe" /path:"C:\Publish\MyOwinWebApp" /port:8080
+ public static void Main(string[] args)
+        {
+            CreateHostBuilder(args).Build().Run();
+        }
+
+        public static IHostBuilder CreateHostBuilder(string[] args) =>
+            Host.CreateDefaultBuilder(args)
+                .ConfigureWebHostDefaults(webBuilder =>
+                {
+                    webBuilder.UseStartup<Startup>();
+                });
