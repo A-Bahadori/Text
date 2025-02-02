@@ -1,11 +1,22 @@
- public static void Main(string[] args)
-        {
-            CreateHostBuilder(args).Build().Run();
-        }
-
-        public static IHostBuilder CreateHostBuilder(string[] args) =>
-            Host.CreateDefaultBuilder(args)
-                .ConfigureWebHostDefaults(webBuilder =>
-                {
-                    webBuilder.UseStartup<Startup>();
-                });
+<?xml version="1.0" encoding="utf-8"?>
+<configuration>
+  <system.web>
+    <compilation debug="true" targetFramework="4.8" />
+    <httpRuntime targetFramework="4.8" />
+  </system.web>
+  
+  <system.webServer>
+    <handlers>
+      <add name="Owin" 
+           verb="*" 
+           path="*" 
+           type="Microsoft.Owin.Host.SystemWeb.OwinHttpHandler, Microsoft.Owin.Host.SystemWeb" />
+    </handlers>
+    
+    <modules runAllManagedModulesForAllRequests="true" />
+  </system.webServer>
+  
+  <appSettings>
+    <add key="owin:AppStartup" value="OwinIISExample.Startup" />
+  </appSettings>
+</configuration>
