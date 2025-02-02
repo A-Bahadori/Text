@@ -1,4 +1,9 @@
- <handlers>
-      <remove name="ExtensionlessUrlHandler-Integrated-4.0" />
-      <add name="ExtensionlessUrlHandler-Integrated-4.0" path="*." verb="*" type="System.Web.Handlers.TransferRequestHandler" preCondition="integratedMode,runtimeVersionv4.0" />
-    </handlers>
+ {
+            // آدرس پایه برای self-hosting
+            string baseAddress = "http://localhost:9000/";
+
+            // راه‌اندازی وب سرور OWIN
+            using (WebApp.Start<Startup>(url: baseAddress))
+            {
+                Console.WriteLine("وب سرور با آدرس {0} در حال اجراست. برای خاتمه، کلید Enter را فشار دهید.", baseAddress);
+              
