@@ -1,4 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <configuration>
+  <configSections>
+    <sectionGroup name="system.applicationHost">
+      <section name="sites" />
+    </sectionGroup>
+  </configSections>
+
   <system.applicationHost>
     <sites>
       <site name="YourAppName" id="1">
@@ -9,6 +16,12 @@
           <binding protocol="http" bindingInformation="*:5000:localhost" />
         </bindings>
       </site>
+      <siteDefaults>
+        <logFile logFormat="W3C" directory="%IIS_USER_HOME%\Logs" />
+        <traceFailedRequestsLogging directory="%IIS_USER_HOME%\TraceLogFiles" enabled="true" maxLogFileSizeKB="1024" />
+      </siteDefaults>
+      <applicationDefaults applicationPool="Clr4IntegratedAppPool" />
+      <virtualDirectoryDefaults allowSubDirConfig="true" />
     </sites>
   </system.applicationHost>
 </configuration>
