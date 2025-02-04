@@ -25,3 +25,12 @@ static void Main(string[] args)
                 Console.ReadLine();
             }
         }
+
+
+# ایجاد اپلیکیشن در IIS
+Import-Module WebAdministration
+New-WebSite -Name "MyWebApp" -Port 80 -PhysicalPath "C:\path\to\published\output" -ApplicationPool ".NET v4.5"
+
+Start-WebSite -Name "MyWebApp"
+
+dotnet run --framework net472
