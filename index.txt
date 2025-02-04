@@ -1,13 +1,27 @@
-<UseIIS>true</UseIIS>
-    <IISExpressSSLPort />
-    <IISExpressAnonymousAuthentication />
-    <IISExpressWindowsAuthentication />
-    <IISExpressUseClassicPipelineMode />
+<UseIISExpress>true</UseIISExpress>
+    <IISExpressSSLPort>44300</IISExpressSSLPort>
+    <IISExpressAnonymousAuthentication>enabled</IISExpressAnonymousAuthentication>
+    <IISExpressWindowsAuthentication>disabled</IISExpressWindowsAuthentication>
 
 
- <system.webServer>
-    <handlers>
-      <add name="Owin" verb="" path="*" type="Microsoft.Owin.Host.SystemWeb.OwinHttpHandler, Microsoft.Owin.Host.SystemWeb" />
-    </handlers>
-    <modules runAllManagedModulesForAllRequests="true" />
-  </system.webServer>
+ public void Configuration(IAppBuilder app)
+        {
+            // تنظیمات OWIN
+            app.Run(context =>
+            {
+                context.Response.ContentType = "text/plain";
+                return context.Response.WriteAsync("Hello, OWIN!");
+            });
+        }
+
+static void Main(string[] args)
+        {
+            string baseAddress = "http://localhost:5000/";
+
+            using (WebApp.Start<Startup>(url: baseAddress))
+            {
+                Console.WriteLine($"Server running at {baseAddress}");
+                Console.WriteLine("Press Enter to exit...");
+                Console.ReadLine();
+            }
+        }
