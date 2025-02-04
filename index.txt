@@ -1,1 +1,1 @@
-"C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Current\Bin\MSBuild.exe" "C:\Projects\MyApp\MyApp.sln" /t:Rebuild /p:Configuration=Release
+8F3D5E2A-1B2C-4D3E-5F6G-7H8I9J0K1L2M
