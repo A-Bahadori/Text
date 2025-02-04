@@ -1,1 +1,6 @@
-EB4D5A3C-8F2E-4B1A-9C7D-3F8E6A5B4C3D
+<system.webServer>
+    <handlers>
+        <remove name="ExtensionlessUrlHandler-Integrated-4.0" />
+        <add name="ExtensionlessUrlHandler-Integrated-4.0" path="*." verb="*" type="System.Web.Handlers.TransferRequestHandler" preCondition="integratedMode,runtimeVersionv4.0" />
+    </handlers>
+</system.webServer>
