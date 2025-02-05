@@ -336,3 +336,55 @@ iisexpress.exe /config:"C:\Path\To\applicationhost.config" /trace:error
             </httpCompression>
         </system.webServer>
     </location>
+
+
+
+
+
+<sectionGroup name="system.webServer">
+    <section name="aspNetCore" overrideModeDefault="Allow" />
+    <section name="handlers" overrideModeDefault="Allow" />
+    <section name="rewrite" overrideModeDefault="Allow" />
+    <section name="security" overrideModeDefault="Allow" />
+    <section name="staticContent" overrideModeDefault="Allow" />
+    <section name="httpErrors" overrideModeDefault="Allow" />
+  </sectionGroup>
+
+
+<system.webServer>
+    <!-- ماژولها (مانند احراز هویت) -->
+    <modules>
+        <add name="AnonymousAuthenticationModule" 
+             type="Microsoft.Web.Administration.AnonymousAuthenticationModule" 
+             preCondition="integratedMode" />
+    </modules>
+
+    <!-- هندلرها (برای پردازش درخواستها) -->
+    <handlers>
+        <add name="StaticFile" 
+             path="*" verb="*" 
+             modules="StaticFileModule" 
+             resourceType="Either" 
+             requireAccess="Read" />
+    </handlers>
+
+    <!-- تنظیمات امنیتی -->
+    <security>
+        <authentication>
+            <anonymousAuthentication enabled="true" />
+        </authentication>
+    </security>
+
+    <!-- MIME Types -->
+    <staticContent>
+        <mimeMap fileExtension=".json" mimeType="application/json" />
+    </staticContent>
+
+    <!-- فایلهای پیشفرض -->
+    <defaultDocument>
+        <files>
+            <add value="index.html" />
+            <add value="Default.aspx" />
+        </files>
+    </defaultDocument>
+</system.webServer>
