@@ -164,3 +164,20 @@ iisexpress.exe /config:"C:\Path\To\applicationhost.config" /trace:error
       <add name="StaticFile" path="*" verb="*" modules="StaticFileModule" resourceType="File" />
     </handlers>
   </system.webServer>
+
+
+ <system.webServer>
+        <handlers>
+            <add name="aspNetCore" path="*" verb="*" modules="AspNetCoreModuleV2" resourceType="Unspecified" />
+        </handlers>
+        <aspNetCore processPath="%LAUNCHER_PATH%" arguments="%LAUNCHER_ARGS%" stdoutLogEnabled="false" hostingModel="InProcess">
+            <environmentVariables>
+                <environmentVariable name="ASPNETCORE_ENVIRONMENT" value="Development" />
+            </environmentVariables>
+        </aspNetCore>
+        <security>
+            <requestFiltering>
+                <requestLimits maxAllowedContentLength="30000000" />
+            </requestFiltering>
+        </security>
+    </system.webServer>
