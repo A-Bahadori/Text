@@ -193,3 +193,43 @@ iisexpress.exe /config:"C:\Path\To\applicationhost.config" /trace:error
       <section name="modules" allowDefinition="MachineToApplication" overrideModeDefault="Allow" />
     </sectionGroup>
   </configSections>
+
+<system.webServer>
+    <modules>
+      <add name="UrlAuthorizationModule" type="System.Web.Security.UrlAuthorizationModule" preCondition="managedHandler" />
+      <add name="AnonymousAuthenticationModule" type="Microsoft.Web.Administration.AnonymousAuthenticationModule" preCondition="integratedMode" />
+      <add name="WindowsAuthenticationModule" type="Microsoft.Web.Administration.WindowsAuthenticationModule" preCondition="integratedMode" />
+    </modules>
+    <handlers>
+      <add name="StaticFile" path="*" verb="*" modules="StaticFileModule" resourceType="Either" requireAccess="Read" />
+    </handlers>
+    <security>
+      <authentication>
+        <anonymousAuthentication enabled="true" />
+        <windowsAuthentication enabled="false" />
+      </authentication>
+    </security>
+    <staticContent>
+      <mimeMap fileExtension=".json" mimeType="application/json" />
+      <mimeMap fileExtension=".svg" mimeType="image/svg+xml" />
+    </staticContent>
+    <directoryBrowse enabled="false" />
+    <defaultDocument>
+      <files>
+        <add value="index.html" />
+        <add value="Default.htm" />
+        <add value="Default.asp" />
+        <add value="index.htm" />
+        <add value="Default.aspx" />
+      </files>
+    </defaultDocument>
+  </system.webServer>
+
+  <location path="" overrideMode="Allow">
+    <system.webServer>
+      <modules>
+        <add name="ManagedPipelineHandler" preCondition="integratedMode" />
+      </modules>
+    </system.webServer>
+  </location>
+
