@@ -181,3 +181,15 @@ iisexpress.exe /config:"C:\Path\To\applicationhost.config" /trace:error
             </requestFiltering>
         </security>
     </system.webServer>
+
+
+  <configSections>
+    <sectionGroup name="system.applicationHost">
+      <section name="applicationPools" type="Microsoft.Web.Administration.ApplicationPoolSection, Microsoft.Web.Administration, Version=10.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35" allowDefinition="AppHostOnly" allowLocation="true" />
+      <section name="sites" type="Microsoft.Web.Administration.SitesSection, Microsoft.Web.Administration, Version=10.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35" allowDefinition="AppHostOnly" allowLocation="true" />
+    </sectionGroup>
+    <sectionGroup name="system.webServer">
+      <section name="handlers" overrideModeDefault="Allow" />
+      <section name="modules" allowDefinition="MachineToApplication" overrideModeDefault="Allow" />
+    </sectionGroup>
+  </configSections>
