@@ -506,3 +506,17 @@ iisexpress.exe /config:"C:\Path\To\applicationhost.config" /trace:error
       <add name="Owin" path="*" verb="*" type="Microsoft.Owin.Host.SystemWeb.OwinHttpHandler, Microsoft.Owin.Host.SystemWeb" resourceType="Unspecified" requireAccess="Script" preCondition="integratedMode" />
     </handlers>
   </system.webServer>
+
+
+
+
+<location path="." inheritInChildApplications="false">
+    <system.webServer>
+      <modules runAllManagedModulesForAllRequests="true">
+        <!-- Register the OWIN HTTP module explicitly.
+             This ensures that all requests are passed through the OWIN pipeline.
+             If already configured via your project’s web.config, this entry may be redundant. -->
+        <add name="Owin" type="Microsoft.Owin.Host.SystemWeb.OwinHttpModule, Microsoft.Owin.Host.SystemWeb" />
+      </modules>
+    </system.webServer>
+  </location>
