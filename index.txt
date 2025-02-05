@@ -388,3 +388,57 @@ iisexpress.exe /config:"C:\Path\To\applicationhost.config" /trace:error
         </files>
     </defaultDocument>
 </system.webServer>
+
+
+
+
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+  <system.applicationHost>
+    <!-- Define application pools -->
+    <applicationPools>
+      <add name="Clr4IntegratedAppPool" managedRuntimeVersion="v4.0" managedPipelineMode="Integrated" />
+    </applicationPools>
+
+    <!-- Define sites -->
+    <sites>
+      <site name="MyAspNetApp" id="1">
+        <application path="/" applicationPool="Clr4IntegratedAppPool">
+          <virtualDirectory path="/" physicalPath="C:\MyAspNetApp" />
+        </application>
+        <bindings>
+          <binding protocol="http" bindingInformation="*:8080:localhost" />
+        </bindings>
+      </site>
+      <siteDefaults>
+        <logFile logFormat="W3C" directory="%IIS_USER_HOME%\Logs" />
+        <traceFailedRequestsLogging directory="%IIS_USER_HOME%\TraceLogFiles" enabled="true" maxLogFileSizeKB="1024" />
+      </siteDefaults>
+      <applicationDefaults applicationPool="Clr4IntegratedAppPool" />
+      <virtualDirectoryDefaults allowSubDirConfig="true" />
+    </sites>
+
+    <!-- Define global logging settings -->
+    <log>
+      <centralBinaryLogFile enabled="true" directory="%IIS_USER_HOME%\Logs" />
+      <centralW3CLogFile enabled="true" directory="%IIS_USER_HOME%\Logs" />
+    </log>
+  </system.applicationHost>
+
+  <system.webServer>
+    <!-- Default document settings -->
+    <defaultDocument>
+      <files>
+        <add value="index.html" />
+        <add value="Default.aspx" />
+        <add value="default.htm" />
+      </files>
+    </defaultDocument>
+
+    <!-- Directory browsing settings -->
+    <directoryBrowse enabled="false" />
+
+    <!-- HTTP errors handling -->
+    <httpErrors errorMode="DetailedLocalOnly" />
+  </system.webServer>
+</configuration>
