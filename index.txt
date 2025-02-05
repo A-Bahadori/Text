@@ -1,36 +1,23 @@
-<UseIISExpress>true</UseIISExpress>
-    <IISExpressSSLPort>44300</IISExpressSSLPort>
-    <IISExpressAnonymousAuthentication>enabled</IISExpressAnonymousAuthentication>
-    <IISExpressWindowsAuthentication>disabled</IISExpressWindowsAuthentication>
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+  <system.applicationHost>
+    <!-- تعریف Application Pool با نسخه‌ی CLR 4 و Pipeline یکپارچه -->
+    <applicationPools>
+      <add name="Clr4IntegratedAppPool" managedRuntimeVersion="v4.0" managedPipelineMode="Integrated" />
+    </applicationPools>
 
-
- public void Configuration(IAppBuilder app)
-        {
-            // تنظیمات OWIN
-            app.Run(context =>
-            {
-                context.Response.ContentType = "text/plain";
-                return context.Response.WriteAsync("Hello, OWIN!");
-            });
-        }
-
-static void Main(string[] args)
-        {
-            string baseAddress = "http://localhost:5000/";
-
-            using (WebApp.Start<Startup>(url: baseAddress))
-            {
-                Console.WriteLine($"Server running at {baseAddress}");
-                Console.WriteLine("Press Enter to exit...");
-                Console.ReadLine();
-            }
-        }
-
-
-# ایجاد اپلیکیشن در IIS
-Import-Module WebAdministration
-New-WebSite -Name "MyWebApp" -Port 80 -PhysicalPath "C:\path\to\published\output" -ApplicationPool ".NET v4.5"
-
-Start-WebSite -Name "MyWebApp"
-
-dotnet run --framework net472
+    <!-- تعریف سایت مربوط به پروژه -->
+    <sites>
+      <site name="MyCSharpProject" id="1">
+        <application path="/" applicationPool="Clr4IntegratedAppPool">
+          <!-- مسیر فیزیکی پروژه را بر اساس موقعیت واقعی تنظیم کنید -->
+          <virtualDirectory path="/" physicalPath="C:\Path\To\MyCSharpProject" />
+        </application>
+        <bindings>
+          <!-- در اینجا پورت و نام میزبان (host) را مطابق نیاز تغییر دهید -->
+          <binding protocol="http" bindingInformation="*:8080:localhost" />
+        </bindings>
+      </site>
+    </sites>
+  </system.applicationHost>
+</configuration>
