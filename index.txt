@@ -26,6 +26,29 @@
 
 
 
+ <system.webServer>
+        <modules runAllManagedModulesForAllRequests="true" />
+        <defaultDocument>
+            <files>
+                <add value="Default.aspx" />
+                <add value="Default.htm" />
+                <add value="index.html" />
+            </files>
+        </defaultDocument>
+        <staticContent>
+            <clientCache cacheControlMode="UseMaxAge" cacheControlMaxAge="1.00:00:00" />
+        </staticContent>
+        <security>
+            <requestFiltering>
+                <requestLimits maxAllowedContentLength="30000000" />
+            </requestFiltering>
+        </security>
+    </system.webServer>
+
+
+
+
+
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
   <system.applicationHost>
