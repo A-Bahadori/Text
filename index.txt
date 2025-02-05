@@ -488,3 +488,21 @@ iisexpress.exe /config:"C:\Path\To\applicationhost.config" /trace:error
         </security>
     </system.webServer>
 
+
+
+
+  <system.webServer>
+    <!-- Default document settings -->
+    <defaultDocument enabled="false" />
+
+    <!-- Directory browsing settings -->
+    <directoryBrowse enabled="false" />
+
+    <!-- HTTP errors handling -->
+    <httpErrors errorMode="DetailedLocalOnly" />
+
+    <!-- OWIN Integration -->
+    <handlers>
+      <add name="Owin" path="*" verb="*" type="Microsoft.Owin.Host.SystemWeb.OwinHttpHandler, Microsoft.Owin.Host.SystemWeb" resourceType="Unspecified" requireAccess="Script" preCondition="integratedMode" />
+    </handlers>
+  </system.webServer>
