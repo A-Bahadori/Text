@@ -1,36 +1,70 @@
-public void Configuration(IAppBuilder app)
+ public void Configuration(IAppBuilder app)
     {
-        // Middleware برای نمایش اطلاعات درخواست
-        app.Use(async (context, next) =>
-        {
-            // نمایش اطلاعات درخواست
-            var request = context.Request;
-            var response = context.Response;
-
-            string output = $@"
-                <h1>OWIN Request Details</h1>
-                <p><strong>Request Method:</strong> {request.Method}</p>
-                <p><strong>Request Path:</strong> {request.Path}</p>
-                <p><strong>Query String:</strong> {request.QueryString}</p>
-                <p><strong>Headers:</strong></p>
-                <ul>
-                    {string.Join("", request.Headers.Select(header => $"<li><strong>{header.Key}:</strong> {header.Value}</li>"))}
-                </ul>
-                <p><strong>Remote IP Address:</strong> {request.RemoteIpAddress}</p>
-                <p><strong>Host:</strong> {request.Host}</p>
-                <hr />
-                <p><em>This is a custom OWIN middleware response.</em></p>
-            ";
-
-            // تنظیم نوع محتوا به HTML
-            response.ContentType = "text/html";
-            await response.WriteAsync(output);
-        });
-
-        // ادامه زنجیره Middleware
+        // Middleware برای نمایش یک صفحه وب متفاوت
         app.Run(context =>
         {
-            context.Response.ContentType = "text/plain";
-            return context.Response.WriteAsync("Hello, OWIN!");
+            // تنظیم نوع محتوا به HTML
+            context.Response.ContentType = "text/html";
+
+            // محتوای HTML صفحه
+            string htmlContent = @"
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+    <meta charset='UTF-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+    <title>Custom OWIN Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .container {
+            text-align: center;
+            background-color: #ffffff;
+            padding: 20px 40px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #333333;
+            font-size: 2.5em;
+        }
+        p {
+            color: #666666;
+            font-size: 1.2em;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 1em;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class='container'>
+        <h1>Welcome to OWIN!</h1>
+        <p>This is a custom page served by OWIN middleware.</p>
+        <button onclick='alert(""Hello from OWIN!"")'>Click Me</button>
+    </div>
+</body>
+</html>";
+
+            // ارسال محتوای HTML به عنوان پاسخ
+            return context.Response.WriteAsync(htmlContent);
         });
     }
