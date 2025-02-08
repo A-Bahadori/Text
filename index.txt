@@ -1,17 +1,36 @@
-using System;
-using System.Web;
-using Microsoft.Owin;
-using Owin;
-
-[assembly: OwinStartup(typeof(MyOwinApp.Startup))]
-
-namespace MyOwinApp
-{
-    public class Global : HttpApplication
+public void Configuration(IAppBuilder app)
     {
-        protected void Application_Start(object sender, EventArgs e)
+        // Middleware برای نمایش اطلاعات درخواست
+        app.Use(async (context, next) =>
         {
-            // راه‌اندازی OWIN
-        }
+            // نمایش اطلاعات درخواست
+            var request = context.Request;
+            var response = context.Response;
+
+            string output = $@"
+                <h1>OWIN Request Details</h1>
+                <p><strong>Request Method:</strong> {request.Method}</p>
+                <p><strong>Request Path:</strong> {request.Path}</p>
+                <p><strong>Query String:</strong> {request.QueryString}</p>
+                <p><strong>Headers:</strong></p>
+                <ul>
+                    {string.Join("", request.Headers.Select(header => $"<li><strong>{header.Key}:</strong> {header.Value}</li>"))}
+                </ul>
+                <p><strong>Remote IP Address:</strong> {request.RemoteIpAddress}</p>
+                <p><strong>Host:</strong> {request.Host}</p>
+                <hr />
+                <p><em>This is a custom OWIN middleware response.</em></p>
+            ";
+
+            // تنظیم نوع محتوا به HTML
+            response.ContentType = "text/html";
+            await response.WriteAsync(output);
+        });
+
+        // ادامه زنجیره Middleware
+        app.Run(context =>
+        {
+            context.Response.ContentType = "text/plain";
+            return context.Response.WriteAsync("Hello, OWIN!");
+        });
     }
-}
