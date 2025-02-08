@@ -113,3 +113,21 @@ app.Run(async context =>
             <virtualDirectory path="/" physicalPath="C:\Projects\WebApp" />
             <virtualDirectory path="/MyApp" physicalPath="C:\Projects\WebApp\MyApp" />
         </application>
+
+
+
+
+
+    app.Use((context, next) =>
+            {
+                // اگر Virtual Directory شما "MyApp" است
+                context.Request.PathBase = new PathString("/MyApp");
+                return next();
+            });
+
+            // پیکربندی Middleware های OWIN
+            app.Run(async context =>
+            {
+                await context.Response.WriteAsync("Hello from OWIN in a Virtual Directory!");
+            });
+ 
