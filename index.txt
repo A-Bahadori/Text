@@ -1,11 +1,17 @@
- public static void Main(string[] args)
-    {
-        CreateHostBuilder(args).Build().Run();
-    }
+using System;
+using System.Web;
+using Microsoft.Owin;
+using Owin;
 
-    public static IHostBuilder CreateHostBuilder(string[] args) =>
-        Host.CreateDefaultBuilder(args)
-            .ConfigureWebHostDefaults(webBuilder =>
-            {
-                webBuilder.UseStartup<Startup>();
-            });
+[assembly: OwinStartup(typeof(MyOwinApp.Startup))]
+
+namespace MyOwinApp
+{
+    public class Global : HttpApplication
+    {
+        protected void Application_Start(object sender, EventArgs e)
+        {
+            // راه‌اندازی OWIN
+        }
+    }
+}
