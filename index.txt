@@ -83,3 +83,33 @@ namespace WebApp
         }
     }
 }
+
+
+
+-------------------------------------------------------------------------------------------------
+
+
+
+app.Run(async context =>
+            {
+                // بررسی مسیر درخواستی
+                if (context.Request.Path == "/")
+                {
+                    // پاسخ برای مسیر اصلی
+                    context.Response.ContentType = "text/plain";
+                    await context.Response.WriteAsync("Hello WebApp Bahadori 3");
+                }
+                else
+                {
+                    // پاسخ برای سایر مسیرها
+                    context.Response.StatusCode = 404;
+                    context.Response.ContentType = "text/plain";
+                    await context.Response.WriteAsync("Not Found");
+                }
+            });
+
+
+  <application path="/" applicationPool="Clr4IntegratedAppPool">
+            <virtualDirectory path="/" physicalPath="C:\Projects\WebApp" />
+            <virtualDirectory path="/MyApp" physicalPath="C:\Projects\WebApp\MyApp" />
+        </application>
