@@ -1,10 +1,85 @@
-<modules runAllManagedModulesForAllRequests="true">
-      <add name="Owin" type="Microsoft.Owin.Host.SystemWeb.OwinHttpModule, Microsoft.Owin.Host.SystemWeb" />
-    </modules>
+using Microsoft.Owin;
+using Owin;
+
+[assembly: OwinStartup(typeof(WebApp.Startup))]
+namespace WebApp
+{
+    public class Startup
+    {
+        public void Configuration(IAppBuilder app)
+        {
+            app.MapWhen(context => context.Request.Path.Equals(new PathString("/")), branch =>
+            {
+                branch.Run(context =>
+                {
+                    context.Response.ContentType = "text/plain";
+                    return context.Response.WriteAsync("Hello WebApp Bahadori 3");
+                });
+            });
+        }
+    }
+}
 
 
-<system.webServer>
-    <handlers>
-      <add name="Owin" verb="*" path="*" type="Microsoft.Owin.Host.SystemWeb.OwinHttpHandler, Microsoft.Owin.Host.SystemWeb" />
-    </handlers>
-  </system.webServer>
+
+using Microsoft.Owin;
+using Owin;
+using System.Threading.Tasks;
+
+[assembly: OwinStartup(typeof(WebApp.Startup))]
+namespace WebApp
+{
+    public class Startup
+    {
+        public void Configuration(IAppBuilder app)
+        {
+            app.Use(async (context, next) =>
+            {
+                if (context.Request.Path.Equals(new PathString("/")))
+                {
+                    context.Response.ContentType = "text/plain";
+                    await context.Response.WriteAsync("Hello WebApp Bahadori 3");
+                }
+                else
+                {
+                    await next();
+                }
+            });
+        }
+    }
+}
+
+
+
+using Microsoft.Owin;
+using Owin;
+using System.Threading.Tasks;
+
+[assembly: OwinStartup(typeof(WebApp.Startup))]
+namespace WebApp
+{
+    public class Startup
+    {
+        public void Configuration(IAppBuilder app)
+        {
+            // تنظیم میان‌افزار OWIN
+            app.Run(async context =>
+            {
+                // بررسی مسیر درخواستی
+                if (context.Request.Path == "/")
+                {
+                    // تنظیم نوع محتوا و پاسخ
+                    context.Response.ContentType = "text/plain";
+                    await context.Response.WriteAsync("Hello WebApp Bahadori 3");
+                }
+                else
+                {
+                    // برای سایر مسیرها، کد وضعیت 404 (Not Found) تنظیم می‌شود
+                    context.Response.StatusCode = 404;
+                    context.Response.ContentType = "text/plain";
+                    await context.Response.WriteAsync("Not Found");
+                }
+            });
+        }
+    }
+}
