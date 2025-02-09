@@ -1,20 +1,56 @@
-RouteTable.Routes.MapRoute(
-                name: "Default",
-                url: "{controller}/{action}/{id}",
-                defaults: new { controller = "Home", action = "Index", id = UrlParameter.Optional }
-            );
 
 
-<system.web>
-  <compilation debug="true" targetFramework="4.7.2" />
-  <httpRuntime targetFramework="4.7.2" />
-</system.web>
 
-<runtime>
-  <assemblyBinding xmlns="urn:schemas-microsoft-com:asm.v1">
-    <dependentAssembly>
-      <assemblyIdentity name="System.Web.Mvc" publicKeyToken="31bf3856ad364e35" />
-      <bindingRedirect oldVersion="0.0.0.0-5.2.7.0" newVersion="5.2.7.0" />
-    </dependentAssembly>
-  </assemblyBinding>
-</runtime>
+
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <system.applicationHost>
+        <sites>
+            <site name="YourProjectName" id="1">
+                <application path="/" applicationPool="Clr4IntegratedAppPool">
+                    <virtualDirectory path="/" physicalPath="C:\YourProjectPath" />
+                </application>
+                <bindings>
+                    <binding protocol="http" bindingInformation="*:44300:localhost" />
+                    <binding protocol="https" bindingInformation="*:44301:localhost" />
+                </bindings>
+            </site>
+        </sites>
+    </system.applicationHost>
+</configuration>
+
+
+
+{
+  "iisSettings": {
+    "windowsAuthentication": false,
+    "anonymousAuthentication": true,
+    "iisExpress": {
+      "applicationUrl": "http://localhost:44300",
+      "sslPort": 44301
+    }
+  },
+  "profiles": {
+    "IIS Express": {
+      "commandName": "IISExpress",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    }
+  }
+}
+
+
+builder.Services.ConfigureHttpsRedirection(options =>
+{
+    options.HttpsPort = 44301;
+});
+
+if (builder.Environment.IsDevelopment())
+{
+    builder.Services.AddHttpsRedirection(options =>
+    {
+        options.RedirectStatusCode = StatusCodes.Status307TemporaryRedirect;
+    });
+}
