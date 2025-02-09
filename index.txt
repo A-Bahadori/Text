@@ -1,11 +1,20 @@
-  <!-- اضافه کردن StaticFileModule برای دسترسی به فایل‌ها -->
-    <modules>
-        <remove name="AnonymousAuthenticationModule" />
-        <add name="AnonymousAuthenticationModule" />
-        <add name="StaticFileModule" />
-    </modules>
+RouteTable.Routes.MapRoute(
+                name: "Default",
+                url: "{controller}/{action}/{id}",
+                defaults: new { controller = "Home", action = "Index", id = UrlParameter.Optional }
+            );
 
-    <!-- فعال‌سازی دسترسی به فایل‌های استاتیک -->
-    <handlers>
-        <add name="StaticFile" path="*" verb="*" modules="StaticFileModule" resourceType="File" requireAccess="Read" />
-    </handlers>
+
+<system.web>
+  <compilation debug="true" targetFramework="4.7.2" />
+  <httpRuntime targetFramework="4.7.2" />
+</system.web>
+
+<runtime>
+  <assemblyBinding xmlns="urn:schemas-microsoft-com:asm.v1">
+    <dependentAssembly>
+      <assemblyIdentity name="System.Web.Mvc" publicKeyToken="31bf3856ad364e35" />
+      <bindingRedirect oldVersion="0.0.0.0-5.2.7.0" newVersion="5.2.7.0" />
+    </dependentAssembly>
+  </assemblyBinding>
+</runtime>
