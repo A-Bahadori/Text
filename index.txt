@@ -1,3 +1,60 @@
-<section name="aspNetCore" overrideModeDefault="Allow" />
-<add name="AspNetCoreModule" lockItem="true" /><add name="AspNetCoreModuleV2" lockItem="true" />
-<add name="AspNetCoreModule" image="%IIS_BIN%\aspnetcore.dll" /><add name="AspNetCoreModuleV2" image="%IIS_BIN%\Asp.Net Core Module\V2\aspnetcorev2.dll" />
+public IConfiguration Configuration { get; }
+
+        public Startup(IConfiguration configuration)
+        {
+            Configuration = configuration;
+        }
+
+        // This method gets called by the runtime. Use this method to add services to the container.
+        public void ConfigureServices(IServiceCollection services)
+        {
+            // Add services to the container here
+            services.AddControllers();
+            services.AddEndpointsApiExplorer();
+            services.AddSwaggerGen();
+        }
+
+        // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+        {
+            if (env.IsDevelopment())
+            {
+                app.UseDeveloperExceptionPage();
+                app.UseSwagger();
+                app.UseSwaggerUI();
+            }
+
+            app.UseHttpsRedirection();
+            app.UseRouting();
+            app.UseAuthorization();
+
+            app.UseEndpoints(endpoints =>
+            {
+                endpoints.MapControllers();
+            });
+        }
+
+
+
+
+
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Hosting;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Load configuration from appsettings.json and other sources
+builder.Configuration.AddJsonFile("appsettings.json", optional: true, reloadOnChange: true);
+
+// Use Startup class for configuration
+var startup = new Startup(builder.Configuration);
+
+// ConfigureServices
+startup.ConfigureServices(builder.Services);
+
+var app = builder.Build();
+
+// Configure
+startup.Configure(app, app.Environment);
+
+app.Run();
