@@ -138,3 +138,94 @@ public static class WebRootExtensions
         return app;
     }
 }
+
+--------------------------------------------------------------------------------------------------------------
+GPT
+
+
+using System;
+using System.IO;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+
+public class Startup
+{
+    public Startup(IConfiguration configuration)
+    {
+        Configuration = configuration;
+    }
+    
+    public IConfiguration Configuration { get; }
+
+    // در صورت نیاز می‌توانید سرویس‌های مورد نظر خود را ثبت کنید.
+    public void ConfigureServices(IServiceCollection services)
+    {
+        // اینجا اگر سرویس‌هایی مانند MVC یا غیره نیاز دارید ثبت کنید.
+    }
+
+    public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+    {
+        // تنظیم محیط اجرا
+        if (env.IsDevelopment())
+        {
+            app.UseDeveloperExceptionPage();
+        }
+        else
+        {
+            app.UseExceptionHandler("/error");
+            app.UseHsts();
+        }
+        
+        // تنظیم مسیر فایل‌های استاتیک
+        var currentDirectory = Directory.GetCurrentDirectory();
+        var frontPath = Path.Combine(currentDirectory, "Front");
+        env.WebRootPath = frontPath;
+
+        app.UseDefaultFiles();
+        app.UseStaticFiles();
+
+        app.UseRouting();
+
+        // تعریف endpointها به صورت Minimal API
+        app.UseEndpoints(endpoints =>
+        {
+            endpoints.MapGet("/sum", (int a, int b) => a + b);
+            endpoints.MapGet("/sub", (int a, int b) => a - b);
+            endpoints.MapGet("/mul", (int a, int b) => a * b);
+            endpoints.MapGet("/division", (int a, int b) => a / b);
+
+            endpoints.MapGet("/Exception", async context =>
+            {
+                var errorMessage = context.Request.Query["message"].ToString();
+                throw new ApplicationException(!string.IsNullOrEmpty(errorMessage) ? errorMessage : "Error");
+            });
+        });
+    }
+}
+
+
+
+
+
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Hosting;
+
+public class Program
+{
+    public static void Main(string[] args)
+    {
+        CreateHostBuilder(args).Build().Run();
+    }
+
+    public static IHostBuilder CreateHostBuilder(string[] args) =>
+        Host.CreateDefaultBuilder(args)
+            .ConfigureWebHostDefaults(webBuilder =>
+            {
+                // استفاده از Startup.cs برای راه‌اندازی برنامه
+                webBuilder.UseStartup<Startup>();
+            });
+}
