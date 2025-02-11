@@ -48,6 +48,40 @@ public class Startup
 
 
 
+public void Configure(IApplicationBuilder app)
+{
+    // تنظیم مسیر فایل‌های استاتیک
+    app.UseWebRoot(_frontPath);
+
+    // استفاده از فایل‌های استاتیک و فایل‌های پیش‌فرض
+    app.UseDefaultFiles();
+    app.UseStaticFiles();
+
+    // تبدیل IApplicationBuilder به WebApplication
+    var webApp = app as WebApplication;
+    if (webApp != null)
+    {
+        webApp.MapGet("/sum", (int a, int b) => a + b);
+        webApp.MapGet("/sub", (int a, int b) => a - b);
+        webApp.MapGet("/mul", (int a, int b) => a * b);
+        webApp.MapGet("/division", (int a, int b) =>
+        {
+            if (b == 0)
+                throw new DivideByZeroException("Division by zero is not allowed.");
+            return a / b;
+        });
+
+        webApp.MapGet("/Exception", (HttpContext context) =>
+        {
+            var errorMessage = context.Request.Query["message"].ToString();
+            throw new ApplicationException(errorMessage ?? "Error");
+        });
+    }
+}
+
+
+
+
 
 
 
