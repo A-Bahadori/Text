@@ -1,40 +1,65 @@
-public void ConfigureServices(IServiceCollection services)
+public class Startup
+{
+    private readonly string _frontPath;
+
+    public Startup()
+    {
+        // تعیین مسیر فایل‌های استاتیک (Front)
+        var currentDirectory = Directory.GetCurrentDirectory();
+        _frontPath = Path.Combine(currentDirectory, "Front");
+    }
+
+    public void ConfigureServices(IServiceCollection services)
     {
         // ثبت سرویس‌ها (Dependency Injection)
-        services.AddControllers();
-        // مثال: اضافه کردن سرویس‌های دیگر
-        // services.AddDbContext<MyDbContext>(...);
+        // در اینجا می‌توانید سرویس‌های دیگر را ثبت کنید.
     }
 
-    public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+    public void Configure(IApplicationBuilder app)
     {
-        if (env.IsDevelopment())
-        {
-            app.UseDeveloperExceptionPage();
-        }
-        else
-        {
-            app.UseExceptionHandler("/Error");
-            app.UseHsts();
-        }
+        // تنظیم مسیر فایل‌های استاتیک
+        app.UseWebRoot(_frontPath);
 
-        app.UseHttpsRedirection();
+        // استفاده از فایل‌های استاتیک و فایل‌های پیش‌فرض
+        app.UseDefaultFiles();
         app.UseStaticFiles();
 
-        app.UseRouting();
-
-        app.UseAuthorization();
-
-        app.UseEndpoints(endpoints =>
+        // تعریف API‌ها
+        app.MapGet("/sum", (int a, int b) => a + b);
+        app.MapGet("/sub", (int a, int b) => a - b);
+        app.MapGet("/mul", (int a, int b) => a * b);
+        app.MapGet("/division", (int a, int b) =>
         {
-            endpoints.MapControllers();
+            if (b == 0)
+                throw new DivideByZeroException("Division by zero is not allowed.");
+            return a / b;
+        });
+
+        // مدیریت خطاها
+        app.MapGet("/Exception", (HttpContext context) =>
+        {
+            var errorMessage = context.Request.Query["message"].ToString();
+            throw new ApplicationException(errorMessage ?? "Error");
         });
     }
+}
 
 
 
 
-var builder = WebApplication.CreateBuilder(args);
+
+
+
+
+
+
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Hosting;
+
+var builder = WebApplication.CreateBuilder(new WebApplicationOptions
+{
+    // تنظیمات اختیاری برای Content Root
+});
 
 // استفاده از کلاس Startup
 var startup = new Startup();
@@ -43,7 +68,39 @@ startup.ConfigureServices(builder.Services);
 var app = builder.Build();
 
 // تنظیم محیط اجرا
-var env = app.Services.GetRequiredService<IWebHostEnvironment>();
-startup.Configure(app, env);
+startup.Configure(app);
 
 app.Run();
+
+
+
+
+
+
+
+
+
+
+WebRootExtensions.cs
+using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.FileProviders;
+using System.IO;
+
+public static class WebRootExtensions
+{
+    public static IApplicationBuilder UseWebRoot(this IApplicationBuilder app, string webRootPath)
+    {
+        if (!Directory.Exists(webRootPath))
+        {
+            throw new DirectoryNotFoundException($"Web root path '{webRootPath}' does not exist.");
+        }
+
+        var fileProvider = new PhysicalFileProvider(webRootPath);
+        app.UseStaticFiles(new StaticFileOptions
+        {
+            FileProvider = fileProvider
+        });
+
+        return app;
+    }
+}
