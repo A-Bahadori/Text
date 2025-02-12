@@ -229,3 +229,30 @@ public class Program
                 webBuilder.UseStartup<Startup>();
             });
 }
+
+
+
+----------------------------------------------------------------------
+
+
+
+
+
+public static void Main(string[] args)
+    {
+        var currentDirectory = Directory.GetCurrentDirectory();
+        var frontPath = Path.Combine(currentDirectory, "Front");
+
+        var host = Host.CreateDefaultBuilder(args)
+            .ConfigureWebHostDefaults(webBuilder =>
+            {
+                webBuilder.UseWebRoot(frontPath);
+                webBuilder.UseStartup<Startup>();
+                webBuilder.UseKestrel(); // حذف IIS Express وابسته به launchSettings.json
+                webBuilder.UseIISIntegration(); // پشتیبانی از IIS
+                webBuilder.UseUrls("http://localhost:5000"); // پورت را صریح تنظیم کنید
+            })
+            .Build();
+
+        host.Run();
+    }
