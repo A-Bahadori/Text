@@ -1,10 +1,24 @@
-<?xml version="1.0" encoding="utf-8"?>
-<configuration>
-  <system.webServer>
-    <handlers>
-      <add name="aspNetCore" path="*" verb="*" modules="AspNetCoreModuleV2" resourceType="Unspecified"/>
-    </handlers>
-    <aspNetCore processPath="%LAUNCHER_PATH%" arguments="%LAUNCHER_ARGS%"                
-   stdoutLogEnabled="false" stdoutLogFile=".\logs\stdout" forwardWindowsAuthToken="false"/>
-  </system.webServer>
-</configuration>
+
+"profiles": { "amazing-webapi": {
+"commandName": "IIS", "LaunchBrowser": true,
+"environmentVariables": {
+"ASPNETCORE_ENVIRONMENT": "Development"
+}
+},
+"IIS Express": {
+"commandName": "IISExpress", "LaunchBrowser": true,
+"LaunchUrl": "swagger",
+"environmentVariables": {
+"ASPNETCORE_ENVIRONMENT": "Development"
+}
+},
+"iisSettings": {
+"iis": {
+"applicationUrl": "http://localhost/amazing-webapi",
+"sslPort": 0
+},
+"iisExpress": {
+"applicationUrl": "http://localhost:50312",
+"sslPort": 44326
+}
+}
