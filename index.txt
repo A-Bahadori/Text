@@ -1,7 +1,2 @@
-feat(project structure): add Startup file and migrate Program.cs configuration
-
-- Introduce Startup.cs file to align with traditional .NET project structure
-- Separate host configuration and middleware setup from Program.cs
-- Maintain backward compatibility with .NET Core 8 conventions
-- Move services configuration to ConfigureServices method
-- Transfer middleware pipeline to Configure method
+  <aspNetCore processPath="%LAUNCHER_PATH%" arguments="%LAUNCHER_ARGS%"                
+   stdoutLogEnabled="false" stdoutLogFile=".\logs\stdout" forwardWindowsAuthToken="false"/>
