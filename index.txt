@@ -1,11 +1,7 @@
-<add name="AspNetCoreModule" image="%IIS_BIN%\aspnetcore.dll" /><add name="AspNetCoreModuleV2" image="%IIS_BIN%\Asp.Net Core Module\V2\aspnetcorev2.dll" />
+feat(project structure): add Startup file and migrate Program.cs configuration
 
-<section name="aspNetCore" overrideModeDefault="Allow" />
-
-<add name="AspNetCoreModule" lockItem="true" /><add name="AspNetCoreModuleV2" lockItem="true" />
-
-
-<aspNetCore processPath="%LAUNCHER_PATH%" arguments="%LAUNCHER_ARGS%"                
-   stdoutLogEnabled="false" stdoutLogFile=".\logs\stdout" forwardWindowsAuthToken="false"/>
-
- <add name="aspNetCore" path="*" verb="*" modules="AspNetCoreModuleV2" resourceType="Unspecified"/>
+- Introduce Startup.cs file to align with traditional .NET project structure
+- Separate host configuration and middleware setup from Program.cs
+- Maintain backward compatibility with .NET Core 8 conventions
+- Move services configuration to ConfigureServices method
+- Transfer middleware pipeline to Configure method
