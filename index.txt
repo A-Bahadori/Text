@@ -1,11 +1,11 @@
-XDocument.Load(@"D:\BPMS\Source\Ray.BPMS.slnx")
-    .Let(doc => doc.Descendants()
-        .Where(e => e.Name.LocalName == "Project" && e.Attribute("Path") != null)
-        .Select(e => Path.Combine(Path.GetDirectoryName(doc.BaseUri), e.Attribute("Path").Value))
-    );
-
-
-public static class Extensions
-{
-    public static TResult Let<T, TResult>(this T value, Func<T, TResult> func) => func(value);
-}
+(string solutionPath => 
+    XDocument.Load(solutionPath)
+        .Descendants()
+        .Where(e => 
+            e.Name.LocalName is "Project" && 
+            e.Attribute("Path") != null
+        )
+        .Select(e => 
+            Path.Combine(Path.GetDirectoryName(solutionPath), e.Attribute("Path").Value)
+        )
+)(@"D:\BPMS\Source\Ray.BPMS.slnx");
