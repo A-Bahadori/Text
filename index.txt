@@ -1,4 +1,4 @@
-(string solutionPath => 
+((string solutionPath) => 
     XDocument.Load(solutionPath)
         .Descendants()
         .Where(e => 
@@ -7,5 +7,4 @@
         )
         .Select(e => 
             Path.Combine(Path.GetDirectoryName(solutionPath), e.Attribute("Path").Value)
-        )
-)(@"D:\BPMS\Source\Ray.BPMS.slnx");
+        ))(@"D:\BPMS\Source\Ray.BPMS.slnx");
