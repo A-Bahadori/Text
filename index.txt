@@ -1,10 +1,11 @@
-((string solutionPath) => 
+((Func<string, IEnumerable<string>>)(solutionPath =>
     XDocument.Load(solutionPath)
         .Descendants()
-        .Where(e => 
-            e.Name.LocalName is "Project" && 
+        .Where(e =>
+            e.Name.LocalName is "Project" &&
             e.Attribute("Path") != null
         )
-        .Select(e => 
+        .Select(e =>
             Path.Combine(Path.GetDirectoryName(solutionPath), e.Attribute("Path").Value)
-        ))(@"D:\BPMS\Source\Ray.BPMS.slnx");
+        )
+))(@"D:\BPMS\Source\Ray.BPMS.slnx");
