@@ -1,19 +1,5 @@
-((Func<string, IEnumerable<(string Project, string Path)>>)(solutionPath =>
-    Directory.GetFiles(Path.GetDirectoryName(solutionPath), "*.csproj", SearchOption.AllDirectories)
-        .Select(file => new
-        {
-            Project = Path.GetFileName(file),
-            Path = file
-        })
-        .Where(e =>
-            XDocument.Load(solutionPath)
-                .Descendants()
-                .Where(x =>
-                    x.Name.LocalName == "Project" &&
-                    x.Attribute("Path") != null
-                )
-                .Select(x => Path.GetFileName(x.Attribute("Path")?.Value))
-                .Any(project => project == e.Project)
-        )
-        .Select(e => (e.Project, e.Path))
-))(@"D:\BPMS\Source\Ray.BPMS.slnx");
+feat(web): configure default document in web.config for serving index.html
+
+- Updated the `web.config` file to set `index.html` as the default document.
+- Added `<defaultDocument>` configuration under `<system.webServer>` to serve `index.html` as the landing page.
+- Removed previous changes from `.csproj` related to IIS URL configuration.
