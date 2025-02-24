@@ -1,5 +1,4 @@
-feat(web): configure default document in web.config for serving index.html
+revert(web): rollback default document configuration in web.config
 
-- Updated the `web.config` file to set `index.html` as the default document.
-- Added `<defaultDocument>` configuration under `<system.webServer>` to serve `index.html` as the landing page.
-- Removed previous changes from `.csproj` related to IIS URL configuration.
+- Reverted changes made to the `web.config` file related to setting `index.html` as the default document.
+- Removed `<defaultDocument>` configuration under `<system.webServer>`.
