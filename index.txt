@@ -1,4 +1,23 @@
-revert(web): rollback default document configuration in web.config
+feat(owin): add OWIN support to the project
 
-- Reverted changes made to the `web.config` file related to setting `index.html` as the default document.
-- Removed `<defaultDocument>` configuration under `<system.webServer>`.
+This MR adds OWIN support to the project, enabling integration with OWIN middleware for handling HTTP requests and responses.
+
+### Key Changes:
+- Added OWIN packages (`Microsoft.Owin`, `Microsoft.Owin.Host.SystemWeb`, etc.) to the project.
+- Created a `Startup` class to configure OWIN middleware.
+- Integrated OWIN with the existing ASP.NET pipeline for enhanced flexibility.
+- Configured basic middleware to demonstrate OWIN functionality.
+
+### Benefits:
+- Provides a foundation for using OWIN middleware in the project.
+- Enables future extensibility with additional OWIN-based features (e.g., authentication, logging).
+- Improves modularity by decoupling application logic from the hosting environment.
+
+### How to Test:
+1. Run the application locally using IIS or IIS Express.
+2. Navigate to the configured endpoint (e.g., `/` or `/api/hello`).
+3. Verify that the response matches the expected output (e.g., "Hello from OWIN!").
+
+### Notes:
+- Ensure all dependencies are installed via NuGet before running the application.
+- This implementation integrates OWIN with the existing ASP.NET pipeline and does not use a pure self-hosted setup.
