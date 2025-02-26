@@ -1,23 +1,32 @@
-feat(owin): add OWIN support to the project
+refactor(webapp): migrate WebApp.csproj to SDK-style format with a known OWIN issue
 
-This MR adds OWIN support to the project, enabling integration with OWIN middleware for handling HTTP requests and responses.
+
+This MR migrates the `WebApp.csproj` file to the new SDK-style project format. While this change improves the project structure and aligns it with modern .NET standards, an issue has been identified where OWIN functionality no longer works as expected.
 
 ### Key Changes:
-- Added OWIN packages (`Microsoft.Owin`, `Microsoft.Owin.Host.SystemWeb`, etc.) to the project.
-- Created a `Startup` class to configure OWIN middleware.
-- Integrated OWIN with the existing ASP.NET pipeline for enhanced flexibility.
-- Configured basic middleware to demonstrate OWIN functionality.
+- Converted `WebApp.csproj` to the SDK-style project format.
+- Updated project dependencies and configurations to match the new format.
 
-### Benefits:
-- Provides a foundation for using OWIN middleware in the project.
-- Enables future extensibility with additional OWIN-based features (e.g., authentication, logging).
-- Improves modularity by decoupling application logic from the hosting environment.
+### Known Issue:
+After migrating to the SDK-style format, OWIN middleware does not function correctly. This issue is currently under investigation.
 
-### How to Test:
-1. Run the application locally using IIS or IIS Express.
-2. Navigate to the configured endpoint (e.g., `/` or `/api/hello`).
-3. Verify that the response matches the expected output (e.g., "Hello from OWIN!").
+### Important Notes for Reviewers and Developers:
+1. **Cleaning and Rebuilding the Project:**
+   - After pulling the latest changes from source control, please ensure that you:
+     - Delete the `bin` and `obj` folders from the project directory.
+     - Rebuild the project to regenerate these folders and resolve potential build issues.
 
-### Notes:
-- Ensure all dependencies are installed via NuGet before running the application.
-- This implementation integrates OWIN with the existing ASP.NET pipeline and does not use a pure self-hosted setup.
+2. **Run/Debug Configuration:**
+   - To run the project, you need to create a custom Run/Debug configuration in your IDE (e.g., Visual Studio or JetBrains Rider) with the following settings:
+     - **Type:** .NET Executable
+     - **Exe Path:** `C:/Program Files (x86)/IIS Express/iisexpress.exe`
+     - **Program Arguments:** `/config:"Your Project Path\.idea\config\applicationhost.config" /site:"WebApp"`
+     - **Working Directory:** `C:/Program Files (x86)/IIS Express`
+
+### Next Steps:
+- The OWIN issue will be addressed in a follow-up task.
+- Please test the project thoroughly after applying the above steps to ensure compatibility with the new SDK-style format.
+
+### Additional Context:
+- The migration to SDK-style projects is part of an effort to modernize the solution and improve maintainability.
+- If you encounter any issues during testing, please report them in the comments section of this MR.
