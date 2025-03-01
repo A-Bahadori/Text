@@ -1,1 +1,4 @@
-  <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+  <UseIISExpress>true</UseIISExpress>
+    <UseIIS>false</UseIIS>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <GenerateBindingRedirectsOutputType>true</GenerateBindingRedirectsOutputType>
