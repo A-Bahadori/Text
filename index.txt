@@ -1,32 +1,6 @@
-refactor(webapp): migrate WebApp.csproj to SDK-style format with a known OWIN issue
-
-
-This MR migrates the `WebApp.csproj` file to the new SDK-style project format. While this change improves the project structure and aligns it with modern .NET standards, an issue has been identified where OWIN functionality no longer works as expected.
-
-### Key Changes:
-- Converted `WebApp.csproj` to the SDK-style project format.
-- Updated project dependencies and configurations to match the new format.
-
-### Known Issue:
-After migrating to the SDK-style format, OWIN middleware does not function correctly. This issue is currently under investigation.
-
-### Important Notes for Reviewers and Developers:
-1. **Cleaning and Rebuilding the Project:**
-   - After pulling the latest changes from source control, please ensure that you:
-     - Delete the `bin` and `obj` folders from the project directory.
-     - Rebuild the project to regenerate these folders and resolve potential build issues.
-
-2. **Run/Debug Configuration:**
-   - To run the project, you need to create a custom Run/Debug configuration in your IDE (e.g., Visual Studio or JetBrains Rider) with the following settings:
-     - **Type:** .NET Executable
-     - **Exe Path:** `C:/Program Files (x86)/IIS Express/iisexpress.exe`
-     - **Program Arguments:** `/config:"Your Project Path\.idea\config\applicationhost.config" /site:"WebApp"`
-     - **Working Directory:** `C:/Program Files (x86)/IIS Express`
-
-### Next Steps:
-- The OWIN issue will be addressed in a follow-up task.
-- Please test the project thoroughly after applying the above steps to ensure compatibility with the new SDK-style format.
-
-### Additional Context:
-- The migration to SDK-style projects is part of an effort to modernize the solution and improve maintainability.
-- If you encounter any issues during testing, please report them in the comments section of this MR.
+<handlers>
+      <remove name="ExtensionlessUrlHandler-Integrated-4.0" />
+      <remove name="OPTIONSVerbHandler" />
+      <remove name="TRACEVerbHandler" />
+      <add name="ExtensionlessUrlHandler-Integrated-4.0" path="*." verb="*" type="System.Web.Handlers.TransferRequestHandler" preCondition="integratedMode,runtimeVersionv4.0" />
+    </handlers>
