@@ -1,4 +1,4 @@
-  <UseIISExpress>true</UseIISExpress>
-    <UseIIS>false</UseIIS>
-    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
-    <GenerateBindingRedirectsOutputType>true</GenerateBindingRedirectsOutputType>
+chore(build): configure output path to use bin/ instead of bin/net472
+
+- Updated .csproj to disable AppendTargetFrameworkToOutputPath.
+- Ensured compatibility with OWIN and SDK-style project structure.
