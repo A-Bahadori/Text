@@ -1,25 +1,4 @@
-This MR migrates the `WebApp.csproj` file to the new SDK-style project format. This change modernizes the project structure and aligns it with current .NET standards, improving maintainability and compatibility.
+style(csproj): consolidate duplicate <PropertyGroup> tags in WebApp.csproj
 
-### Key Changes:
-- Converted `WebApp.csproj` to the SDK-style project format.
-- Updated project dependencies and configurations to match the new format.
-- Configured the output path to use `bin/` instead of `bin/net472` by disabling `AppendTargetFrameworkToOutputPath`.
-- Ensured seamless integration with OWIN middleware in the new project structure.
-
-### Important Notes for Reviewers and Developers:
-1. **Cleaning and Rebuilding the Project:**
-   - After pulling the latest changes from source control, please ensure that you:
-     - Delete the `bin` and `obj` folders from the project directory.
-     - Rebuild the project to regenerate these folders and resolve potential build issues.
-
-2. **Run/Debug Configuration:**
-   - To run the project, you need to create a custom Run/Debug configuration in your IDE (e.g., Visual Studio or JetBrains Rider) with the following settings:
-     - **Type:** .NET Executable
-     - **Exe Path:** `C:/Program Files (x86)/IIS Express/iisexpress.exe`
-     - **Program Arguments:** `/config:"Your Project Path\.idea\config\applicationhost.config" /site:"WebApp"`
-     - **Working Directory:** `C:/Program Files (x86)/IIS Express`
-
-### Additional Context:
-- The migration to SDK-style projects is part of an effort to modernize the solution and improve maintainability.
-- OWIN functionality has been tested and works seamlessly with the new project structure.
-- If you encounter any issues during testing, please report them in the comments section of this MR.
+- Merged two separate <PropertyGroup> tags into a single <PropertyGroup> for better organization.
+- No functional changes were made; this commit only improves the structure and readability of the .csproj file.
