@@ -1,4 +1,19 @@
-style(csproj): consolidate duplicate <PropertyGroup> tags in WebApp.csproj
-
-- Merged two separate <PropertyGroup> tags into a single <PropertyGroup> for better organization.
-- No functional changes were made; this commit only improves the structure and readability of the .csproj file.
+{
+  "iisSettings": {
+    "windowsAuthentication": false,
+    "anonymousAuthentication": true,
+    "iisExpress": {
+      "applicationUrl": "http://localhost:5000",
+      "sslPort": 0
+    }
+  },
+  "profiles": {
+    "IIS Express": {
+      "commandName": "IISExpress",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    }
+  }
+}
