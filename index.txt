@@ -1,8 +1,59 @@
-<runtime>
-  <assemblyBinding xmlns="urn:schemas-microsoft-com:asm.v1">
-    <dependentAssembly>
-      <assemblyIdentity name="System.Runtime" publicKeyToken="b03f5f7f11d50a3a" culture="neutral" />
-      <bindingRedirect oldVersion="0.0.0.0-8.0.0.0" newVersion="8.0.0.0" />
-    </dependentAssembly>
-  </assemblyBinding>
-</runtime>
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Hosting;
+
+// تعریف delegate به سبک OWIN
+using AppFunc = System.Func<System.Collections.Generic.IDictionary<string, object>, Task>;
+
+namespace OwinExample
+{
+    public class Startup
+    {
+        public void Configure(IApplicationBuilder app)
+        {
+            // استفاده از OWIN middleware از طریق آداپتور
+            app.UseOwin(builder =>
+            {
+                builder(next =>
+                {
+                    // تابع middleware OWIN
+                    return async environment =>
+                    {
+                        // عملیات قبل از فراخوانی middleware بعدی
+                        Console.WriteLine("Before OWIN middleware");
+
+                        // فراخوانی middleware بعدی
+                        await next(environment);
+
+                        // عملیات پس از فراخوانی middleware بعدی
+                        Console.WriteLine("After OWIN middleware");
+                    };
+                });
+            });
+
+            // ادامه‌ی Pipeline ASP.NET Core
+            app.Run(async context =>
+            {
+                await context.Response.WriteAsync("Hello from ASP.NET Core!");
+            });
+        }
+    }
+    
+    public class Program
+    {
+        public static void Main(string[] args)
+        {
+            Host.CreateDefaultBuilder(args)
+                .ConfigureWebHostDefaults(webBuilder =>
+                {
+                    webBuilder.UseStartup<Startup>();
+                })
+                .Build()
+                .Run();
+        }
+    }
+}
