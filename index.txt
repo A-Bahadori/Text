@@ -1,40 +1,184 @@
-void Main()
+using System;
+using System.Diagnostics;
+using System.Reflection;
+using System.IO;
+using System.Collections.Generic;
+
+public class AssemblyDebugHelper
 {
-    // دریافت مسیر از کاربر
-    var path = Input.GetDirectory("مسیر مورد نظر را انتخاب کنید:");
-    if (string.IsNullOrEmpty(path) || !Directory.Exists(path))
+    public static void AnalyzeException(Exception ex)
     {
-        "مسیر معتبر نیست!".Dump();
-        return;
+        Console.WriteLine("===== Exception Analysis Using Reflection =====");
+        
+        // Exception information
+        Console.WriteLine($"Exception Type: {ex.GetType().FullName}");
+        Console.WriteLine($"Exception Message: {ex.Message}");
+        
+        // Stack Trace information
+        StackTrace st = new StackTrace(ex, true);
+        Console.WriteLine("\n===== Stack Trace Details =====");
+        
+        foreach (StackFrame frame in st.GetFrames())
+        {
+            MethodBase method = frame.GetMethod();
+            
+            Console.WriteLine($"\nMethod: {method.Name}");
+            Console.WriteLine($"Class: {method.DeclaringType?.FullName}");
+            Console.WriteLine($"Assembly: {method.Module.Assembly.FullName}");
+            
+            // Show file and line information
+            if (frame.GetFileName() != null)
+            {
+                Console.WriteLine($"File: {frame.GetFileName()}");
+                Console.WriteLine($"Line: {frame.GetFileLineNumber()}");
+                Console.WriteLine($"Column: {frame.GetFileColumnNumber()}");
+            }
+            
+            // Show method parameters
+            ParameterInfo[] parameters = method.GetParameters();
+            if (parameters.Length > 0)
+            {
+                Console.WriteLine("Parameters:");
+                foreach (var param in parameters)
+                {
+                    Console.WriteLine($"  - {param.ParameterType.Name} {param.Name}");
+                }
+            }
+        }
+        
+        // Analyze assembly related to error
+        if (st.GetFrames().Length > 0)
+        {
+            Assembly relevantAssembly = st.GetFrame(0).GetMethod().Module.Assembly;
+            AnalyzeAssembly(relevantAssembly);
+        }
+        
+        // Check inner exceptions
+        if (ex.InnerException != null)
+        {
+            Console.WriteLine("\n===== Inner Exception =====");
+            AnalyzeException(ex.InnerException);
+        }
     }
     
-    // جستجوی تمام پوشه‌های obj و bin به صورت بازگشتی
-    var dirsToDelete = Directory.GetDirectories(path, "*", SearchOption.AllDirectories)
-                                .Where(d => 
-                                    Path.GetFileName(d).Equals("obj", StringComparison.OrdinalIgnoreCase) ||
-                                    Path.GetFileName(d).Equals("bin", StringComparison.OrdinalIgnoreCase))
-                                .ToList();
-    
-    if (!dirsToDelete.Any())
-    {
-        "هیچ پوشه obj یا bin یافت نشد.".Dump();
-        return;
-    }
-    
-    // حذف پوشه‌ها
-    int deletedCount = 0;
-    foreach (var dir in dirsToDelete)
+    public static Assembly LoadAssemblyDynamically(string assemblyPath)
     {
         try
         {
-            Directory.Delete(dir, true);
-            deletedCount++;
+            Console.WriteLine($"Attempting to load assembly from: {assemblyPath}");
+            
+            if (!File.Exists(assemblyPath))
+            {
+                throw new FileNotFoundException($"Assembly file not found: {assemblyPath}");
+            }
+            
+            // Load the assembly
+            Assembly loadedAssembly = Assembly.LoadFrom(assemblyPath);
+            Console.WriteLine($"Successfully loaded assembly: {loadedAssembly.FullName}");
+            
+            // Analyze the loaded assembly
+            AnalyzeAssembly(loadedAssembly);
+            
+            return loadedAssembly;
         }
         catch (Exception ex)
         {
-            $"خطا در حذف {dir}: {ex.Message}".Dump();
+            Console.WriteLine($"Error loading assembly: {ex.Message}");
+            return null;
         }
     }
     
-    $"{deletedCount} پوشه با موفقیت حذف شد.".Dump();
+    public static void AnalyzeAssembly(Assembly assembly)
+    {
+        Console.WriteLine("\n===== Assembly Information =====");
+        Console.WriteLine($"Name: {assembly.FullName}");
+        Console.WriteLine($"Location: {assembly.Location}");
+        
+        // Check for PDB file
+        string pdbPath = Path.ChangeExtension(assembly.Location, "pdb");
+        if (File.Exists(pdbPath))
+        {
+            Console.WriteLine($"PDB file found: {pdbPath}");
+            FileInfo pdbInfo = new FileInfo(pdbPath);
+            Console.WriteLine($"PDB file size: {pdbInfo.Length} bytes");
+            Console.WriteLine($"PDB creation date: {pdbInfo.CreationTime}");
+        }
+        else
+        {
+            Console.WriteLine("No PDB file found for this assembly.");
+        }
+        
+        // Display types in the assembly
+        Console.WriteLine("\n===== Types in Assembly =====");
+        Type[] types = assembly.GetTypes();
+        foreach (Type type in types)
+        {
+            Console.WriteLine($"Type: {type.FullName}");
+        }
+    }
+    
+    public static void InspectMethod(MethodInfo method)
+    {
+        Console.WriteLine($"\n===== Method Inspection: {method.Name} =====");
+        Console.WriteLine($"Return Type: {method.ReturnType.Name}");
+        Console.WriteLine($"Is Public: {method.IsPublic}");
+        Console.WriteLine($"Is Static: {method.IsStatic}");
+        
+        // Get IL bytes and display operations
+        try
+        {
+            var methodBody = method.GetMethodBody();
+            if (methodBody != null)
+            {
+                byte[] ilBytes = methodBody.GetILAsByteArray();
+                Console.WriteLine($"IL Code Size: {ilBytes.Length} bytes");
+                
+                // Basic IL byte display (not decoded)
+                Console.WriteLine("IL Bytes (hex):");
+                for (int i = 0; i < ilBytes.Length; i++)
+                {
+                    Console.Write($"{ilBytes[i]:X2} ");
+                    if ((i + 1) % 16 == 0) Console.WriteLine();
+                }
+                Console.WriteLine();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Could not access IL code: {ex.Message}");
+        }
+    }
+    
+    public static List<Exception> TestAssemblyMethods(Assembly assembly)
+    {
+        List<Exception> exceptions = new List<Exception>();
+        Console.WriteLine("\n===== Testing Methods in Assembly =====");
+        
+        foreach (Type type in assembly.GetTypes())
+        {
+            foreach (MethodInfo method in type.GetMethods(BindingFlags.Public | BindingFlags.Static))
+            {
+                // Only try to invoke methods with no parameters or all optional parameters
+                if (method.GetParameters().Length == 0 || 
+                    Array.TrueForAll(method.GetParameters(), p => p.IsOptional))
+                {
+                    try
+                    {
+                        Console.WriteLine($"Testing method: {type.Name}.{method.Name}()");
+                        method.Invoke(null, null);
+                        Console.WriteLine("  Result: Success");
+                    }
+                    catch (Exception ex)
+                    {
+                        // Unwrap the TargetInvocationException
+                        Exception actualEx = ex is TargetInvocationException ? ex.InnerException : ex;
+                        Console.WriteLine($"  Result: Failed with {actualEx.GetType().Name}: {actualEx.Message}");
+                        exceptions.Add(actualEx);
+                    }
+                }
+            }
+        }
+        
+        return exceptions;
+    }
 }
