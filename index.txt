@@ -1,59 +1,40 @@
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Hosting;
-
-// تعریف delegate به سبک OWIN
-using AppFunc = System.Func<System.Collections.Generic.IDictionary<string, object>, Task>;
-
-namespace OwinExample
+void Main()
 {
-    public class Startup
+    // دریافت مسیر از کاربر
+    var path = Input.GetDirectory("مسیر مورد نظر را انتخاب کنید:");
+    if (string.IsNullOrEmpty(path) || !Directory.Exists(path))
     {
-        public void Configure(IApplicationBuilder app)
+        "مسیر معتبر نیست!".Dump();
+        return;
+    }
+    
+    // جستجوی تمام پوشه‌های obj و bin به صورت بازگشتی
+    var dirsToDelete = Directory.GetDirectories(path, "*", SearchOption.AllDirectories)
+                                .Where(d => 
+                                    Path.GetFileName(d).Equals("obj", StringComparison.OrdinalIgnoreCase) ||
+                                    Path.GetFileName(d).Equals("bin", StringComparison.OrdinalIgnoreCase))
+                                .ToList();
+    
+    if (!dirsToDelete.Any())
+    {
+        "هیچ پوشه obj یا bin یافت نشد.".Dump();
+        return;
+    }
+    
+    // حذف پوشه‌ها
+    int deletedCount = 0;
+    foreach (var dir in dirsToDelete)
+    {
+        try
         {
-            // استفاده از OWIN middleware از طریق آداپتور
-            app.UseOwin(builder =>
-            {
-                builder(next =>
-                {
-                    // تابع middleware OWIN
-                    return async environment =>
-                    {
-                        // عملیات قبل از فراخوانی middleware بعدی
-                        Console.WriteLine("Before OWIN middleware");
-
-                        // فراخوانی middleware بعدی
-                        await next(environment);
-
-                        // عملیات پس از فراخوانی middleware بعدی
-                        Console.WriteLine("After OWIN middleware");
-                    };
-                });
-            });
-
-            // ادامه‌ی Pipeline ASP.NET Core
-            app.Run(async context =>
-            {
-                await context.Response.WriteAsync("Hello from ASP.NET Core!");
-            });
+            Directory.Delete(dir, true);
+            deletedCount++;
+        }
+        catch (Exception ex)
+        {
+            $"خطا در حذف {dir}: {ex.Message}".Dump();
         }
     }
     
-    public class Program
-    {
-        public static void Main(string[] args)
-        {
-            Host.CreateDefaultBuilder(args)
-                .ConfigureWebHostDefaults(webBuilder =>
-                {
-                    webBuilder.UseStartup<Startup>();
-                })
-                .Build()
-                .Run();
-        }
-    }
+    $"{deletedCount} پوشه با موفقیت حذف شد.".Dump();
 }
