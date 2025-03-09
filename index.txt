@@ -182,3 +182,48 @@ public class AssemblyDebugHelper
         return exceptions;
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+// Example 1: Analyze an exception
+try
+{
+    // Your code that might throw an exception
+    throw new InvalidOperationException("Sample error");
+}
+catch (Exception ex)
+{
+    AssemblyDebugHelper.AnalyzeException(ex);
+}
+
+// Example 2: Dynamically load and analyze an assembly
+string assemblyPath = @"C:\Path\To\Your\Assembly.dll";
+Assembly loadedAssembly = AssemblyDebugHelper.LoadAssemblyDynamically(assemblyPath);
+
+if (loadedAssembly != null)
+{
+    // Inspect a specific method in the loaded assembly
+    Type targetType = loadedAssembly.GetType("Namespace.ClassName");
+    if (targetType != null)
+    {
+        MethodInfo method = targetType.GetMethod("MethodName");
+        if (method != null)
+        {
+            AssemblyDebugHelper.InspectMethod(method);
+        }
+    }
+    
+    // Test static methods and collect any exceptions
+    List<Exception> foundExceptions = AssemblyDebugHelper.TestAssemblyMethods(loadedAssembly);
+    Console.WriteLine($"Found {foundExceptions.Count} exceptions when testing methods");
+}
