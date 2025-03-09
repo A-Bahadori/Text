@@ -195,35 +195,270 @@ public class AssemblyDebugHelper
 
 
 
-// Example 1: Analyze an exception
-try
-{
-    // Your code that might throw an exception
-    throw new InvalidOperationException("Sample error");
-}
-catch (Exception ex)
-{
-    AssemblyDebugHelper.AnalyzeException(ex);
-}
+using System;
+using System.Collections.Generic;
+using System.Reflection;
+using System.IO;
+using System.Linq;
 
-// Example 2: Dynamically load and analyze an assembly
-string assemblyPath = @"C:\Path\To\Your\Assembly.dll";
-Assembly loadedAssembly = AssemblyDebugHelper.LoadAssemblyDynamically(assemblyPath);
-
-if (loadedAssembly != null)
+class Program
 {
-    // Inspect a specific method in the loaded assembly
-    Type targetType = loadedAssembly.GetType("Namespace.ClassName");
-    if (targetType != null)
+    static void Main(string[] args)
     {
-        MethodInfo method = targetType.GetMethod("MethodName");
+        Console.WriteLine("C# Assembly Error Analysis Examples");
+        Console.WriteLine("==================================");
+        
+        // Example 1: Analyzing an exception
+        ExampleAnalyzeException();
+        
+        // Example 2: Loading an assembly dynamically
+        ExampleLoadAssemblyDynamically();
+        
+        // Example 3: Analyzing an assembly
+        ExampleAnalyzeAssembly();
+        
+        // Example 4: Inspecting a method
+        ExampleInspectMethod();
+        
+        // Example 5: Testing methods in an assembly
+        ExampleTestAssemblyMethods();
+        
+        // Example 6: Handling nested exceptions
+        ExampleNestedExceptions();
+        
+        // Example 7: Working with PDB files
+        ExampleWorkingWithPdbFiles();
+        
+        Console.WriteLine("\nPress any key to exit...");
+        Console.ReadKey();
+    }
+    
+    static void ExampleAnalyzeException()
+    {
+        Console.WriteLine("\n\nEXAMPLE 1: ANALYZING AN EXCEPTION");
+        Console.WriteLine("----------------------------------");
+        
+        try
+        {
+            // Create a division by zero exception
+            int numerator = 10;
+            int denominator = 0;
+            int result = numerator / denominator;
+        }
+        catch (Exception ex)
+        {
+            // Analyze the exception using our helper
+            AssemblyDebugHelper.AnalyzeException(ex);
+        }
+    }
+    
+    static void ExampleLoadAssemblyDynamically()
+    {
+        Console.WriteLine("\n\nEXAMPLE 2: LOADING AN ASSEMBLY DYNAMICALLY");
+        Console.WriteLine("------------------------------------------");
+        
+        // Example with System.Linq assembly (should be available on any system)
+        string systemLinqPath = typeof(Enumerable).Assembly.Location;
+        Console.WriteLine($"Attempting to load System.Linq from: {systemLinqPath}");
+        
+        Assembly loadedAssembly = AssemblyDebugHelper.LoadAssemblyDynamically(systemLinqPath);
+        
+        if (loadedAssembly != null)
+        {
+            Console.WriteLine($"Successfully loaded: {loadedAssembly.GetName().Name}, Version: {loadedAssembly.GetName().Version}");
+        }
+        
+        // Example with non-existent assembly
+        Console.WriteLine("\nAttempting to load a non-existent assembly:");
+        Assembly nonExistentAssembly = AssemblyDebugHelper.LoadAssemblyDynamically("NonExistentAssembly.dll");
+    }
+    
+    static void ExampleAnalyzeAssembly()
+    {
+        Console.WriteLine("\n\nEXAMPLE 3: ANALYZING AN ASSEMBLY");
+        Console.WriteLine("--------------------------------");
+        
+        // Analyze the current assembly
+        Assembly currentAssembly = Assembly.GetExecutingAssembly();
+        Console.WriteLine($"Analyzing current assembly: {currentAssembly.GetName().Name}");
+        
+        AssemblyDebugHelper.AnalyzeAssembly(currentAssembly);
+    }
+    
+    static void ExampleInspectMethod()
+    {
+        Console.WriteLine("\n\nEXAMPLE 4: INSPECTING A METHOD");
+        Console.WriteLine("------------------------------");
+        
+        // Get a method from the current assembly to inspect
+        MethodInfo method = typeof(Program).GetMethod("ExampleMethod", 
+            BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+        
         if (method != null)
         {
             AssemblyDebugHelper.InspectMethod(method);
         }
+        else
+        {
+            Console.WriteLine("Method not found!");
+        }
     }
     
-    // Test static methods and collect any exceptions
-    List<Exception> foundExceptions = AssemblyDebugHelper.TestAssemblyMethods(loadedAssembly);
-    Console.WriteLine($"Found {foundExceptions.Count} exceptions when testing methods");
+    // Sample method that will be inspected
+    static int ExampleMethod(int x, string y = "default")
+    {
+        return x + y.Length;
+    }
+    
+    static void ExampleTestAssemblyMethods()
+    {
+        Console.WriteLine("\n\nEXAMPLE 5: TESTING METHODS IN AN ASSEMBLY");
+        Console.WriteLine("-----------------------------------------");
+        
+        // Create a simple test assembly to test
+        Assembly testAssembly = Assembly.GetExecutingAssembly();
+        Console.WriteLine($"Testing methods in assembly: {testAssembly.GetName().Name}");
+        
+        List<Exception> exceptions = AssemblyDebugHelper.TestAssemblyMethods(testAssembly);
+        
+        Console.WriteLine($"\nFound {exceptions.Count} exceptions while testing methods");
+        for (int i = 0; i < exceptions.Count; i++)
+        {
+            Console.WriteLine($"Exception {i+1}: {exceptions[i].Message}");
+        }
+    }
+    
+    static void ExampleNestedExceptions()
+    {
+        Console.WriteLine("\n\nEXAMPLE 6: HANDLING NESTED EXCEPTIONS");
+        Console.WriteLine("--------------------------------------");
+        
+        try
+        {
+            try
+            {
+                try
+                {
+                    // Deepest exception
+                    throw new ArgumentException("Invalid argument");
+                }
+                catch (Exception level3)
+                {
+                    // Wrap in a level 2 exception
+                    throw new InvalidOperationException("Operation failed", level3);
+                }
+            }
+            catch (Exception level2)
+            {
+                // Wrap in a level 1 exception
+                throw new ApplicationException("Application error", level2);
+            }
+        }
+        catch (Exception ex)
+        {
+            // Analyze the nested exceptions
+            AssemblyDebugHelper.AnalyzeException(ex);
+        }
+    }
+    
+    static void ExampleWorkingWithPdbFiles()
+    {
+        Console.WriteLine("\n\nEXAMPLE 7: WORKING WITH PDB FILES");
+        Console.WriteLine("---------------------------------");
+        
+        // Get details about the current assembly and its PDB
+        Assembly currentAssembly = Assembly.GetExecutingAssembly();
+        string assemblyPath = currentAssembly.Location;
+        string pdbPath = Path.ChangeExtension(assemblyPath, "pdb");
+        
+        Console.WriteLine($"Assembly Path: {assemblyPath}");
+        Console.WriteLine($"PDB Path: {pdbPath}");
+        
+        if (File.Exists(pdbPath))
+        {
+            FileInfo pdbInfo = new FileInfo(pdbPath);
+            Console.WriteLine($"PDB File Size: {pdbInfo.Length} bytes");
+            Console.WriteLine($"PDB Creation Date: {pdbInfo.CreationTime}");
+            Console.WriteLine("PDB file exists - this means you can get full stack trace with line numbers");
+            
+            // Demonstrate a stack trace with line numbers
+            try
+            {
+                ThrowExampleException();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("\nExample stack trace with line numbers:");
+                StackTrace st = new StackTrace(ex, true);
+                foreach (StackFrame frame in st.GetFrames())
+                {
+                    if (frame.GetFileName() != null)
+                    {
+                        Console.WriteLine($"Method: {frame.GetMethod().Name}, File: {Path.GetFileName(frame.GetFileName())}, Line: {frame.GetFileLineNumber()}");
+                    }
+                }
+            }
+        }
+        else
+        {
+            Console.WriteLine("PDB file does not exist - stack traces will not include line numbers");
+            
+            // Show how to manually create a PDB reference for a dynamically loaded assembly
+            Console.WriteLine("\nTo manually specify a PDB file for a dynamically loaded assembly, you would:");
+            Console.WriteLine("1. Create a DebuggableAttribute with DebuggingModes.Default");
+            Console.WriteLine("2. Use Assembly.Load with the assembly bytes and PDB bytes");
+            
+            Console.WriteLine(@"
+Example:
+byte[] assemblyBytes = File.ReadAllBytes(""YourAssembly.dll"");
+byte[] pdbBytes = File.ReadAllBytes(""YourAssembly.pdb"");
+Assembly loadedAssembly = Assembly.Load(assemblyBytes, pdbBytes);
+");
+        }
+    }
+    
+    static void ThrowExampleException()
+    {
+        throw new Exception("Example exception with line number information");
+    }
+}
+
+// Extension Method Examples
+public static class AssemblyDebugHelperExtensions
+{
+    // Example showing how to extend the functionality
+    public static void AnalyzeExceptionAndLog(this Exception ex, string logPath)
+    {
+        // First use the existing functionality
+        AssemblyDebugHelper.AnalyzeException(ex);
+        
+        // Then add custom logging
+        using (StreamWriter writer = new StreamWriter(logPath, true))
+        {
+            writer.WriteLine($"Exception logged at {DateTime.Now}");
+            writer.WriteLine($"Type: {ex.GetType().FullName}");
+            writer.WriteLine($"Message: {ex.Message}");
+            writer.WriteLine($"Stack Trace: {ex.StackTrace}");
+            writer.WriteLine(new string('-', 50));
+        }
+        
+        Console.WriteLine($"Exception logged to: {logPath}");
+    }
+    
+    // Example demonstrating how to analyze all loaded assemblies
+    public static void AnalyzeAllLoadedAssemblies()
+    {
+        Console.WriteLine("\nANALYZING ALL LOADED ASSEMBLIES");
+        Console.WriteLine("--------------------------------");
+        
+        Assembly[] loadedAssemblies = AppDomain.CurrentDomain.GetAssemblies();
+        Console.WriteLine($"Found {loadedAssemblies.Length} loaded assemblies");
+        
+        foreach (Assembly assembly in loadedAssemblies)
+        {
+            Console.WriteLine($"\nAnalyzing: {assembly.GetName().Name}");
+            Console.WriteLine($"Version: {assembly.GetName().Version}");
+            Console.WriteLine($"Location: {(string.IsNullOrEmpty(assembly.Location) ? "Dynamic Assembly (no location)" : assembly.Location)}");
+        }
+    }
 }
