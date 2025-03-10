@@ -1,119 +1,126 @@
-try 
+// Your initial compilation line
+CompilerResults = CodeDomProvider.CompileAssemblyFromSource(compileParams, sources);
+
+// Call the function to display error details
+DisplayCompilationAndRuntimeErrors(CompilerResults);
+
+// Function that handles all error display and execution
+public static void DisplayCompilationAndRuntimeErrors(CompilerResults CompilerResults)
 {
-    // Your existing compilation code
-    CompilerResults = CodeDomProvider.CompileAssemblyFromSource(compileParams, sources);
-    
-    // Check for compilation errors
-    if (CompilerResults.Errors.HasErrors)
+    try 
     {
-        foreach (CompilerError error in CompilerResults.Errors)
+        // Check for compilation errors
+        if (CompilerResults.Errors.HasErrors)
         {
-            Console.WriteLine($"Compilation Error: {error.ErrorText} at line {error.Line}");
-        }
-        return;
-    }
-    
-    // Execute the compiled assembly
-    Assembly assembly = CompilerResults.CompiledAssembly;
-    Type mainType = assembly.GetTypes().FirstOrDefault(t => t.Name == "YourMainClassName"); // Replace with your main class name
-    
-    if (mainType != null)
-    {
-        object instance = Activator.CreateInstance(mainType);
-        MethodInfo method = mainType.GetMethod("YourMethodName"); // Replace with your method name
-        
-        if (method != null)
-        {
-            method.Invoke(instance, null); // Execute the method
-        }
-    }
-}
-catch (Exception ex)
-{
-    // Display exception information
-    Console.WriteLine("Runtime Error:");
-    Console.WriteLine($"Message: {ex.Message}");
-    
-    // If the error is related to Reflection, extract the original exception
-    if (ex is TargetInvocationException tie && tie.InnerException != null)
-    {
-        Exception innerEx = tie.InnerException;
-        Console.WriteLine("Inner Exception Details:");
-        Console.WriteLine($"Type: {innerEx.GetType().FullName}");
-        Console.WriteLine($"Message: {innerEx.Message}");
-        
-        // Display Stack Trace information (since IncludeDebugInformation = true)
-        Console.WriteLine("Stack Trace:");
-        Console.WriteLine(innerEx.StackTrace);
-        
-        // Display HResult
-        Console.WriteLine($"HResult: {innerEx.HResult}");
-        
-        // Display Source
-        Console.WriteLine($"Source: {innerEx.Source}");
-        
-        // Use Reflection to show additional exception details
-        PropertyInfo[] properties = innerEx.GetType().GetProperties();
-        Console.WriteLine("Additional Exception Information (via Reflection):");
-        foreach (PropertyInfo property in properties)
-        {
-            try
+            foreach (CompilerError error in CompilerResults.Errors)
             {
-                object value = property.GetValue(innerEx);
-                Console.WriteLine($"{property.Name}: {value}");
+                Console.WriteLine($"Compilation Error: {error.ErrorText} at line {error.Line}");
             }
-            catch (Exception) { /* Ignore potential errors when accessing properties */ }
+            return;
         }
         
-        // Use System.Diagnostics.StackTrace for more detailed information
-        System.Diagnostics.StackTrace st = new System.Diagnostics.StackTrace(innerEx, true);
-        Console.WriteLine("Detailed Stack Frame Information:");
-        for (int i = 0; i < st.FrameCount; i++)
-        {
-            System.Diagnostics.StackFrame sf = st.GetFrame(i);
-            Console.WriteLine($"Frame {i}:");
-            Console.WriteLine($"  File: {sf.GetFileName() ?? "Unknown"}");
-            Console.WriteLine($"  Line: {sf.GetFileLineNumber()}");
-            Console.WriteLine($"  Column: {sf.GetFileColumnNumber()}");
-            Console.WriteLine($"  Method: {sf.GetMethod()?.DeclaringType?.FullName}.{sf.GetMethod()?.Name}");
-            Console.WriteLine($"  IL Offset: {sf.GetILOffset()}");
-        }
+        // Execute the compiled assembly
+        Assembly assembly = CompilerResults.CompiledAssembly;
+        Type mainType = assembly.GetTypes().FirstOrDefault(t => t.Name == "YourMainClassName"); // Replace with your main class name
         
-        // If there are nested inner exceptions, display them too
-        Exception nestedEx = innerEx.InnerException;
-        int nestedLevel = 1;
-        while (nestedEx != null)
+        if (mainType != null)
         {
-            Console.WriteLine($"Nested Inner Exception (Level {nestedLevel}):");
-            Console.WriteLine($"Type: {nestedEx.GetType().FullName}");
-            Console.WriteLine($"Message: {nestedEx.Message}");
-            Console.WriteLine($"Stack Trace: {nestedEx.StackTrace}");
+            object instance = Activator.CreateInstance(mainType);
+            MethodInfo method = mainType.GetMethod("YourMethodName"); // Replace with your method name
             
-            nestedEx = nestedEx.InnerException;
-            nestedLevel++;
-        }
-        
-        // If it's a specific exception type with additional properties, display them
-        // Example for SqlException
-        if (innerEx.GetType().FullName == "System.Data.SqlClient.SqlException")
-        {
-            PropertyInfo lineNumberProp = innerEx.GetType().GetProperty("LineNumber");
-            PropertyInfo procedureProp = innerEx.GetType().GetProperty("Procedure");
-            PropertyInfo serverProp = innerEx.GetType().GetProperty("Server");
-            
-            if (lineNumberProp != null) Console.WriteLine($"SQL Line Number: {lineNumberProp.GetValue(innerEx)}");
-            if (procedureProp != null) Console.WriteLine($"SQL Procedure: {procedureProp.GetValue(innerEx)}");
-            if (serverProp != null) Console.WriteLine($"SQL Server: {serverProp.GetValue(innerEx)}");
+            if (method != null)
+            {
+                method.Invoke(instance, null); // Execute the method
+            }
         }
     }
-    
-    // Display Data collection if it contains entries
-    if (ex.Data.Count > 0)
+    catch (Exception ex)
     {
-        Console.WriteLine("Exception Data Collection:");
-        foreach (DictionaryEntry entry in ex.Data)
+        // Display exception information
+        Console.WriteLine("Runtime Error:");
+        Console.WriteLine($"Message: {ex.Message}");
+        
+        // If the error is related to Reflection, extract the original exception
+        if (ex is TargetInvocationException tie && tie.InnerException != null)
         {
-            Console.WriteLine($"  {entry.Key}: {entry.Value}");
+            Exception innerEx = tie.InnerException;
+            Console.WriteLine("Inner Exception Details:");
+            Console.WriteLine($"Type: {innerEx.GetType().FullName}");
+            Console.WriteLine($"Message: {innerEx.Message}");
+            
+            // Display Stack Trace information (since IncludeDebugInformation = true)
+            Console.WriteLine("Stack Trace:");
+            Console.WriteLine(innerEx.StackTrace);
+            
+            // Display HResult
+            Console.WriteLine($"HResult: {innerEx.HResult}");
+            
+            // Display Source
+            Console.WriteLine($"Source: {innerEx.Source}");
+            
+            // Use Reflection to show additional exception details
+            PropertyInfo[] properties = innerEx.GetType().GetProperties();
+            Console.WriteLine("Additional Exception Information (via Reflection):");
+            foreach (PropertyInfo property in properties)
+            {
+                try
+                {
+                    object value = property.GetValue(innerEx);
+                    Console.WriteLine($"{property.Name}: {value}");
+                }
+                catch (Exception) { /* Ignore potential errors when accessing properties */ }
+            }
+            
+            // Use System.Diagnostics.StackTrace for more detailed information
+            System.Diagnostics.StackTrace st = new System.Diagnostics.StackTrace(innerEx, true);
+            Console.WriteLine("Detailed Stack Frame Information:");
+            for (int i = 0; i < st.FrameCount; i++)
+            {
+                System.Diagnostics.StackFrame sf = st.GetFrame(i);
+                Console.WriteLine($"Frame {i}:");
+                Console.WriteLine($"  File: {sf.GetFileName() ?? "Unknown"}");
+                Console.WriteLine($"  Line: {sf.GetFileLineNumber()}");
+                Console.WriteLine($"  Column: {sf.GetFileColumnNumber()}");
+                Console.WriteLine($"  Method: {sf.GetMethod()?.DeclaringType?.FullName}.{sf.GetMethod()?.Name}");
+                Console.WriteLine($"  IL Offset: {sf.GetILOffset()}");
+            }
+            
+            // If there are nested inner exceptions, display them too
+            Exception nestedEx = innerEx.InnerException;
+            int nestedLevel = 1;
+            while (nestedEx != null)
+            {
+                Console.WriteLine($"Nested Inner Exception (Level {nestedLevel}):");
+                Console.WriteLine($"Type: {nestedEx.GetType().FullName}");
+                Console.WriteLine($"Message: {nestedEx.Message}");
+                Console.WriteLine($"Stack Trace: {nestedEx.StackTrace}");
+                
+                nestedEx = nestedEx.InnerException;
+                nestedLevel++;
+            }
+            
+            // If it's a specific exception type with additional properties, display them
+            // Example for SqlException
+            if (innerEx.GetType().FullName == "System.Data.SqlClient.SqlException")
+            {
+                PropertyInfo lineNumberProp = innerEx.GetType().GetProperty("LineNumber");
+                PropertyInfo procedureProp = innerEx.GetType().GetProperty("Procedure");
+                PropertyInfo serverProp = innerEx.GetType().GetProperty("Server");
+                
+                if (lineNumberProp != null) Console.WriteLine($"SQL Line Number: {lineNumberProp.GetValue(innerEx)}");
+                if (procedureProp != null) Console.WriteLine($"SQL Procedure: {procedureProp.GetValue(innerEx)}");
+                if (serverProp != null) Console.WriteLine($"SQL Server: {serverProp.GetValue(innerEx)}");
+            }
+        }
+        
+        // Display Data collection if it contains entries
+        if (ex.Data.Count > 0)
+        {
+            Console.WriteLine("Exception Data Collection:");
+            foreach (DictionaryEntry entry in ex.Data)
+            {
+                Console.WriteLine($"  {entry.Key}: {entry.Value}");
+            }
         }
     }
 }
