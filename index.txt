@@ -1,126 +1,76 @@
-// Your initial compilation line
-CompilerResults = CodeDomProvider.CompileAssemblyFromSource(compileParams, sources);
+using System;
+using System.Reflection;
+using System.CodeDom.Compiler;
+using System.Diagnostics;
+using Microsoft.CSharp;
 
-// Call the function to display error details
-DisplayCompilationAndRuntimeErrors(CompilerResults);
+// فرض کنید کد قبلی شما به صورت زیر است
+CodeDomProvider provider = new CSharpCodeProvider();
+CompilerParameters compileParams = new CompilerParameters();
+compileParams.GenerateInMemory = false;
+compileParams.OutputAssembly = "path/to/output.dll";
+compileParams.IncludeDebugInformation = true;
+string[] sources = { "your source code" };
 
-// Function that handles all error display and execution
-public static void DisplayCompilationAndRuntimeErrors(CompilerResults CompilerResults)
+// کامپایل کردن
+CompilerResults compilerResults = provider.CompileAssemblyFromSource(compileParams, sources);
+
+// بررسی خطاهای کامپایل
+if (compilerResults.Errors.HasErrors)
 {
-    try 
+    foreach (CompilerError error in compilerResults.Errors)
     {
-        // Check for compilation errors
-        if (CompilerResults.Errors.HasErrors)
-        {
-            foreach (CompilerError error in CompilerResults.Errors)
-            {
-                Console.WriteLine($"Compilation Error: {error.ErrorText} at line {error.Line}");
-            }
-            return;
-        }
-        
-        // Execute the compiled assembly
-        Assembly assembly = CompilerResults.CompiledAssembly;
-        Type mainType = assembly.GetTypes().FirstOrDefault(t => t.Name == "YourMainClassName"); // Replace with your main class name
-        
-        if (mainType != null)
-        {
-            object instance = Activator.CreateInstance(mainType);
-            MethodInfo method = mainType.GetMethod("YourMethodName"); // Replace with your method name
-            
-            if (method != null)
-            {
-                method.Invoke(instance, null); // Execute the method
-            }
-        }
+        Console.WriteLine($"Error: {error.ErrorText} at Line {error.Line}, Column {error.Column}");
     }
-    catch (Exception ex)
+    return;
+}
+
+// بارگذاری assembly برای اجرا
+Assembly compiledAssembly;
+if (compilerResults.CompiledAssembly != null)
+{
+    compiledAssembly = compilerResults.CompiledAssembly;
+}
+else
+{
+    compiledAssembly = Assembly.LoadFrom(compileParams.OutputAssembly);
+}
+
+try
+{
+    // نوع اصلی برنامه را پیدا کنید
+    Type programType = compiledAssembly.GetType("YourNamespace.YourMainClass");
+    
+    // یک نمونه از کلاس بسازید (اگر متد استاتیک نیست)
+    object instance = Activator.CreateInstance(programType);
+    
+    // متد مورد نظر را فراخوانی کنید
+    MethodInfo method = programType.GetMethod("YourMethodName");
+    method.Invoke(instance, null); // یا پارامترهای مورد نیاز را پاس دهید
+}
+catch (Exception ex)
+{
+    // دریافت exception اصلی (در صورت وجود InnerException)
+    Exception innerException = ex;
+    while (innerException is TargetInvocationException && innerException.InnerException != null)
     {
-        // Display exception information
-        Console.WriteLine("Runtime Error:");
-        Console.WriteLine($"Message: {ex.Message}");
+        innerException = innerException.InnerException;
+    }
+    
+    // نمایش اطلاعات exception با جزئیات StackTrace که شامل اطلاعات خط و فایل از PDB است
+    Console.WriteLine($"Runtime Exception: {innerException.GetType().Name}");
+    Console.WriteLine($"Message: {innerException.Message}");
+    
+    // نمایش StackTrace با خط و شماره ستون (به دلیل وجود PDB)
+    StackTrace stackTrace = new StackTrace(innerException, true);
+    for (int i = 0; i < stackTrace.FrameCount; i++)
+    {
+        StackFrame frame = stackTrace.GetFrame(i);
+        string fileName = frame.GetFileName() ?? "Unknown";
+        int line = frame.GetFileLineNumber();
+        int column = frame.GetFileColumnNumber();
+        string methodName = frame.GetMethod()?.Name ?? "Unknown";
         
-        // If the error is related to Reflection, extract the original exception
-        if (ex is TargetInvocationException tie && tie.InnerException != null)
-        {
-            Exception innerEx = tie.InnerException;
-            Console.WriteLine("Inner Exception Details:");
-            Console.WriteLine($"Type: {innerEx.GetType().FullName}");
-            Console.WriteLine($"Message: {innerEx.Message}");
-            
-            // Display Stack Trace information (since IncludeDebugInformation = true)
-            Console.WriteLine("Stack Trace:");
-            Console.WriteLine(innerEx.StackTrace);
-            
-            // Display HResult
-            Console.WriteLine($"HResult: {innerEx.HResult}");
-            
-            // Display Source
-            Console.WriteLine($"Source: {innerEx.Source}");
-            
-            // Use Reflection to show additional exception details
-            PropertyInfo[] properties = innerEx.GetType().GetProperties();
-            Console.WriteLine("Additional Exception Information (via Reflection):");
-            foreach (PropertyInfo property in properties)
-            {
-                try
-                {
-                    object value = property.GetValue(innerEx);
-                    Console.WriteLine($"{property.Name}: {value}");
-                }
-                catch (Exception) { /* Ignore potential errors when accessing properties */ }
-            }
-            
-            // Use System.Diagnostics.StackTrace for more detailed information
-            System.Diagnostics.StackTrace st = new System.Diagnostics.StackTrace(innerEx, true);
-            Console.WriteLine("Detailed Stack Frame Information:");
-            for (int i = 0; i < st.FrameCount; i++)
-            {
-                System.Diagnostics.StackFrame sf = st.GetFrame(i);
-                Console.WriteLine($"Frame {i}:");
-                Console.WriteLine($"  File: {sf.GetFileName() ?? "Unknown"}");
-                Console.WriteLine($"  Line: {sf.GetFileLineNumber()}");
-                Console.WriteLine($"  Column: {sf.GetFileColumnNumber()}");
-                Console.WriteLine($"  Method: {sf.GetMethod()?.DeclaringType?.FullName}.{sf.GetMethod()?.Name}");
-                Console.WriteLine($"  IL Offset: {sf.GetILOffset()}");
-            }
-            
-            // If there are nested inner exceptions, display them too
-            Exception nestedEx = innerEx.InnerException;
-            int nestedLevel = 1;
-            while (nestedEx != null)
-            {
-                Console.WriteLine($"Nested Inner Exception (Level {nestedLevel}):");
-                Console.WriteLine($"Type: {nestedEx.GetType().FullName}");
-                Console.WriteLine($"Message: {nestedEx.Message}");
-                Console.WriteLine($"Stack Trace: {nestedEx.StackTrace}");
-                
-                nestedEx = nestedEx.InnerException;
-                nestedLevel++;
-            }
-            
-            // If it's a specific exception type with additional properties, display them
-            // Example for SqlException
-            if (innerEx.GetType().FullName == "System.Data.SqlClient.SqlException")
-            {
-                PropertyInfo lineNumberProp = innerEx.GetType().GetProperty("LineNumber");
-                PropertyInfo procedureProp = innerEx.GetType().GetProperty("Procedure");
-                PropertyInfo serverProp = innerEx.GetType().GetProperty("Server");
-                
-                if (lineNumberProp != null) Console.WriteLine($"SQL Line Number: {lineNumberProp.GetValue(innerEx)}");
-                if (procedureProp != null) Console.WriteLine($"SQL Procedure: {procedureProp.GetValue(innerEx)}");
-                if (serverProp != null) Console.WriteLine($"SQL Server: {serverProp.GetValue(innerEx)}");
-            }
-        }
-        
-        // Display Data collection if it contains entries
-        if (ex.Data.Count > 0)
-        {
-            Console.WriteLine("Exception Data Collection:");
-            foreach (DictionaryEntry entry in ex.Data)
-            {
-                Console.WriteLine($"  {entry.Key}: {entry.Value}");
-            }
-        }
+        Console.WriteLine($"  at {methodName} in {fileName}:line {line}, column {column}");
     }
 }
