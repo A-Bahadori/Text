@@ -1,76 +1,70 @@
-using System;
-using System.Reflection;
-using System.CodeDom.Compiler;
-using System.Diagnostics;
-using Microsoft.CSharp;
+string dllPath = compilerResults.PathToAssembly;
+                string pdbPath = Path.ChangeExtension(dllPath, ".pdb");
+                Console.WriteLine($"Assembly saved to: {dllPath}");
 
-// فرض کنید کد قبلی شما به صورت زیر است
-CodeDomProvider provider = new CSharpCodeProvider();
-CompilerParameters compileParams = new CompilerParameters();
-compileParams.GenerateInMemory = false;
-compileParams.OutputAssembly = "path/to/output.dll";
-compileParams.IncludeDebugInformation = true;
-string[] sources = { "your source code" };
+                // 5. ایجاد AppDomain جدید
+                var domainSetup = new AppDomainSetup
+                {
+                    ApplicationBase = AppDomain.CurrentDomain.BaseDirectory,
+                    ShadowCopyFiles = "true", // جلوگیری از قفل فایل
+                    CachePath = Path.Combine(Path.GetTempPath(), "ShadowCopyCache")
+                };
 
-// کامپایل کردن
-CompilerResults compilerResults = provider.CompileAssemblyFromSource(compileParams, sources);
+                var appDomain = AppDomain.CreateDomain("DynamicDomain", null, domainSetup);
 
-// بررسی خطاهای کامپایل
-if (compilerResults.Errors.HasErrors)
-{
-    foreach (CompilerError error in compilerResults.Errors)
+                try
+                {
+                    // 6. ایجاد Proxy در AppDomain جدید
+                    var proxy = (DomainProxy)appDomain.CreateInstanceAndUnwrap(
+                        typeof(DomainProxy).Assembly.FullName,
+                        typeof(DomainProxy).FullName);
+
+                    // 7. اجرای متد و دریافت خطا
+                    Exception runtimeError = proxy.ExecuteMethod(dllPath, "DynamicCode.Calculator", "Divide", new object[] { 10, 0 });
+
+                    if (runtimeError != null)
+                    {
+                        Console.WriteLine("\nRuntime Error Details:");
+                        Console.WriteLine($"Message: {runtimeError.Message}");
+
+                        // استخراج جزئیات خطای دقیق
+                        StackTrace stackTrace = new StackTrace(runtimeError, true);
+                        foreach (StackFrame frame in stackTrace.GetFrames())
+                        {
+                            Console.WriteLine($"\nMethod: {frame.GetMethod().DeclaringType}.{frame.GetMethod().Name}");
+                            Console.WriteLine($"File: {frame.GetFileName()}");
+                            Console.WriteLine($"Line: {frame.GetFileLineNumber()}");
+                        }
+                    }
+                }
+                finally
+                {
+                    // 8. Unload کردن AppDomain
+                    AppDomain.Unload(appDomain);
+                }
+
+
+
+ public class DomainProxy : MarshalByRefObject
     {
-        Console.WriteLine($"Error: {error.ErrorText} at Line {error.Line}, Column {error.Column}");
-    }
-    return;
-}
+        public Exception ExecuteMethod(string assemblyPath, string typeName, string methodName, object[] parameters)
+        {
+            try
+            {
+                // بارگذاری اسمبلی
+                Assembly assembly = Assembly.LoadFrom(assemblyPath);
+                Type type = assembly.GetType(typeName);
+                MethodInfo method = type.GetMethod(methodName);
+                object instance = Activator.CreateInstance(type);
 
-// بارگذاری assembly برای اجرا
-Assembly compiledAssembly;
-if (compilerResults.CompiledAssembly != null)
-{
-    compiledAssembly = compilerResults.CompiledAssembly;
-}
-else
-{
-    compiledAssembly = Assembly.LoadFrom(compileParams.OutputAssembly);
-}
-
-try
-{
-    // نوع اصلی برنامه را پیدا کنید
-    Type programType = compiledAssembly.GetType("YourNamespace.YourMainClass");
-    
-    // یک نمونه از کلاس بسازید (اگر متد استاتیک نیست)
-    object instance = Activator.CreateInstance(programType);
-    
-    // متد مورد نظر را فراخوانی کنید
-    MethodInfo method = programType.GetMethod("YourMethodName");
-    method.Invoke(instance, null); // یا پارامترهای مورد نیاز را پاس دهید
-}
-catch (Exception ex)
-{
-    // دریافت exception اصلی (در صورت وجود InnerException)
-    Exception innerException = ex;
-    while (innerException is TargetInvocationException && innerException.InnerException != null)
-    {
-        innerException = innerException.InnerException;
+                // اجرای متد
+                method.Invoke(instance, parameters);
+                return null;
+            }
+            catch (Exception ex)
+            {
+                // بازگرداندن خطا به AppDomain اصلی
+                return ex.InnerException ?? ex;
+            }
+        }
     }
-    
-    // نمایش اطلاعات exception با جزئیات StackTrace که شامل اطلاعات خط و فایل از PDB است
-    Console.WriteLine($"Runtime Exception: {innerException.GetType().Name}");
-    Console.WriteLine($"Message: {innerException.Message}");
-    
-    // نمایش StackTrace با خط و شماره ستون (به دلیل وجود PDB)
-    StackTrace stackTrace = new StackTrace(innerException, true);
-    for (int i = 0; i < stackTrace.FrameCount; i++)
-    {
-        StackFrame frame = stackTrace.GetFrame(i);
-        string fileName = frame.GetFileName() ?? "Unknown";
-        int line = frame.GetFileLineNumber();
-        int column = frame.GetFileColumnNumber();
-        string methodName = frame.GetMethod()?.Name ?? "Unknown";
-        
-        Console.WriteLine($"  at {methodName} in {fileName}:line {line}, column {column}");
-    }
-}
