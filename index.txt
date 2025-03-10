@@ -1,1 +1,77 @@
   parameters.CompilerOptions = "/p:GenerateOutputAssemblyInSpiteOfErrors=true";
+
+
+
+public static string GetCompilerErrorDetailsUsingReflection(CompilerResults results)
+{
+    if (results == null)
+        return "نتایج کامپایل خالی است";
+        
+    // دسترسی به کالکشن خطاها با استفاده از Reflection
+    PropertyInfo errorsProperty = results.GetType().GetProperty("Errors");
+    object errorsCollection = errorsProperty.GetValue(results, null);
+    
+    // بررسی اینکه آیا خطایی وجود دارد
+    PropertyInfo hasErrorsProperty = errorsCollection.GetType().GetProperty("HasErrors");
+    bool hasErrors = (bool)hasErrorsProperty.GetValue(errorsCollection, null);
+    
+    if (!hasErrors)
+        return "بدون خطا";
+    
+    // دسترسی به تعداد خطاها
+    PropertyInfo countProperty = errorsCollection.GetType().GetProperty("Count");
+    int errorCount = (int)countProperty.GetValue(errorsCollection, null);
+    
+    StringBuilder sb = new StringBuilder();
+    sb.AppendLine($"تعداد خطاها: {errorCount}");
+    
+    // دسترسی به تک تک خطاها
+    int actualErrors = 0;
+    int warningCount = 0;
+    
+    // روش اول: استفاده از GetEnumerator
+    MethodInfo getEnumeratorMethod = errorsCollection.GetType().GetMethod("GetEnumerator");
+    object enumerator = getEnumeratorMethod.Invoke(errorsCollection, null);
+    
+    MethodInfo moveNextMethod = enumerator.GetType().GetMethod("MoveNext");
+    PropertyInfo currentProperty = enumerator.GetType().GetProperty("Current");
+    
+    while ((bool)moveNextMethod.Invoke(enumerator, null))
+    {
+        object error = currentProperty.GetValue(enumerator, null);
+        
+        // دریافت خصوصیات خطا با استفاده از Reflection
+        PropertyInfo lineProperty = error.GetType().GetProperty("Line");
+        PropertyInfo columnProperty = error.GetType().GetProperty("Column");
+        PropertyInfo errorTextProperty = error.GetType().GetProperty("ErrorText");
+        PropertyInfo errorNumberProperty = error.GetType().GetProperty("ErrorNumber");
+        PropertyInfo isWarningProperty = error.GetType().GetProperty("IsWarning");
+        PropertyInfo fileNameProperty = error.GetType().GetProperty("FileName");
+        
+        int line = (int)lineProperty.GetValue(error, null);
+        int column = (int)columnProperty.GetValue(error, null);
+        string errorText = (string)errorTextProperty.GetValue(error, null);
+        string errorNumber = (string)errorNumberProperty.GetValue(error, null);
+        bool isWarning = (bool)isWarningProperty.GetValue(error, null);
+        string fileName = (string)fileNameProperty.GetValue(error, null);
+        
+        if (isWarning)
+            warningCount++;
+        else
+            actualErrors++;
+            
+        sb.AppendLine($"[{(isWarning ? "هشدار" : "خطا")}] در فایل {fileName}");
+        sb.AppendLine($"خط {line}، ستون {column}: {errorText} (کد خطا: {errorNumber})");
+        sb.AppendLine("-------------------------");
+    }
+    
+    sb.AppendLine($"خلاصه: {actualErrors} خطا، {warningCount} هشدار");
+    
+    return sb.ToString();
+}
+
+
+
+
+
+
