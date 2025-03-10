@@ -1,48 +1,80 @@
-public static string GetCompilerErrorDetailsUsingReflection(CompilerResults results)
+public static string GetDetailedCompilationErrorInfo(CompilerResults results)
 {
-    if (results == null)
-        return "Compilation results are empty";
+    StringBuilder detailedInfo = new StringBuilder();
+    
+    // Add StackTrace information to identify where the compilation method was called
+    StackTrace stackTrace = new StackTrace(true); // true parameter to get line numbers
+    detailedInfo.AppendLine("=== Compilation Method Call Location ===");
+    
+    // Get the last 3 frames from the StackTrace (you can change the number)
+    for (int i = 0; i < Math.Min(3, stackTrace.FrameCount); i++)
+    {
+        StackFrame frame = stackTrace.GetFrame(i);
+        MethodBase method = frame.GetMethod();
         
-    // Access errors collection using Reflection
-    PropertyInfo errorsProperty = results.GetType().GetProperty("Errors");
+        string className = method.DeclaringType != null ? method.DeclaringType.FullName : "Unknown";
+        string methodName = method.Name;
+        string fileName = frame.GetFileName() ?? "Unknown";
+        int lineNumber = frame.GetFileLineNumber();
+        
+        detailedInfo.AppendLine($"Frame {i}: {className}.{methodName}");
+        detailedInfo.AppendLine($"  File: {fileName}");
+        detailedInfo.AppendLine($"  Line: {lineNumber}");
+    }
+    
+    // Use Reflection to access compilation errors
+    detailedInfo.AppendLine("\n=== Compilation Errors ===");
+    
+    if (results == null)
+    {
+        detailedInfo.AppendLine("Compilation results are null!");
+        return detailedInfo.ToString();
+    }
+    
+    // Access the errors collection using Reflection
+    Type resultType = results.GetType();
+    PropertyInfo errorsProperty = resultType.GetProperty("Errors");
     object errorsCollection = errorsProperty.GetValue(results, null);
     
-    // Check if there are any errors
+    // Check for errors
     PropertyInfo hasErrorsProperty = errorsCollection.GetType().GetProperty("HasErrors");
     bool hasErrors = (bool)hasErrorsProperty.GetValue(errorsCollection, null);
     
     if (!hasErrors)
-        return "No errors";
+    {
+        detailedInfo.AppendLine("Compilation completed successfully without errors.");
+        return detailedInfo.ToString();
+    }
     
-    // Access error count
+    // Get error count
     PropertyInfo countProperty = errorsCollection.GetType().GetProperty("Count");
     int errorCount = (int)countProperty.GetValue(errorsCollection, null);
+    detailedInfo.AppendLine($"Total error count: {errorCount}");
     
-    StringBuilder sb = new StringBuilder();
-    sb.AppendLine($"Number of errors: {errorCount}");
-    
-    // Access individual errors
-    int actualErrors = 0;
-    int warningCount = 0;
-    
-    // First approach: Using GetEnumerator
+    // Examine each error using Reflection
     MethodInfo getEnumeratorMethod = errorsCollection.GetType().GetMethod("GetEnumerator");
     object enumerator = getEnumeratorMethod.Invoke(errorsCollection, null);
     
     MethodInfo moveNextMethod = enumerator.GetType().GetMethod("MoveNext");
     PropertyInfo currentProperty = enumerator.GetType().GetProperty("Current");
     
+    int errorIndex = 0;
+    int warningCount = 0;
+    int actualErrorCount = 0;
+    
+    // Iterate through errors
     while ((bool)moveNextMethod.Invoke(enumerator, null))
     {
         object error = currentProperty.GetValue(enumerator, null);
+        Type errorType = error.GetType();
         
-        // Get error properties using Reflection
-        PropertyInfo lineProperty = error.GetType().GetProperty("Line");
-        PropertyInfo columnProperty = error.GetType().GetProperty("Column");
-        PropertyInfo errorTextProperty = error.GetType().GetProperty("ErrorText");
-        PropertyInfo errorNumberProperty = error.GetType().GetProperty("ErrorNumber");
-        PropertyInfo isWarningProperty = error.GetType().GetProperty("IsWarning");
-        PropertyInfo fileNameProperty = error.GetType().GetProperty("FileName");
+        // Extract all error properties using Reflection
+        PropertyInfo lineProperty = errorType.GetProperty("Line");
+        PropertyInfo columnProperty = errorType.GetProperty("Column");
+        PropertyInfo errorTextProperty = errorType.GetProperty("ErrorText");
+        PropertyInfo errorNumberProperty = errorType.GetProperty("ErrorNumber");
+        PropertyInfo isWarningProperty = errorType.GetProperty("IsWarning");
+        PropertyInfo fileNameProperty = errorType.GetProperty("FileName");
         
         int line = (int)lineProperty.GetValue(error, null);
         int column = (int)columnProperty.GetValue(error, null);
@@ -54,14 +86,106 @@ public static string GetCompilerErrorDetailsUsingReflection(CompilerResults resu
         if (isWarning)
             warningCount++;
         else
-            actualErrors++;
-            
-        sb.AppendLine($"[{(isWarning ? "Warning" : "Error")}] in file {fileName}");
-        sb.AppendLine($"Line {line}, Column {column}: {errorText} (Error code: {errorNumber})");
-        sb.AppendLine("-------------------------");
+            actualErrorCount++;
+        
+        detailedInfo.AppendLine($"\nError #{++errorIndex}:");
+        detailedInfo.AppendLine($"  Type: {(isWarning ? "Warning" : "Error")}");
+        detailedInfo.AppendLine($"  File: {fileName}");
+        detailedInfo.AppendLine($"  Location: Line {line}, Column {column}");
+        detailedInfo.AppendLine($"  Error Code: {errorNumber}");
+        detailedInfo.AppendLine($"  Error Message: {errorText}");
+        
+        // Add code snippet related to the error (if sources are available)
+        if (!string.IsNullOrEmpty(fileName) && fileName.StartsWith("Source") && line > 0)
+        {
+            try
+            {
+                // Assuming sources array is accessible somehow
+                // FieldInfo sourcesField = ...
+                // string[] sources = ...
+                
+                detailedInfo.AppendLine("  Error code snippet:");
+                // Add relevant code snippet here
+                // ...
+            }
+            catch
+            {
+                detailedInfo.AppendLine("  (Source code not available)");
+            }
+        }
     }
     
-    sb.AppendLine($"Summary: {actualErrors} errors, {warningCount} warnings");
+    detailedInfo.AppendLine("\n=== Summary ===");
+    detailedInfo.AppendLine($"Number of errors: {actualErrorCount}");
+    detailedInfo.AppendLine($"Number of warnings: {warningCount}");
     
-    return sb.ToString();
+    // Add assembly information
+    detailedInfo.AppendLine("\n=== Assembly Information ===");
+    PropertyInfo pathToAssemblyProperty = resultType.GetProperty("PathToAssembly");
+    string pathToAssembly = (string)pathToAssemblyProperty.GetValue(results, null);
+    detailedInfo.AppendLine($"Assembly path: {pathToAssembly}");
+    
+    PropertyInfo tempFilesProperty = resultType.GetProperty("TempFiles");
+    object tempFiles = tempFilesProperty.GetValue(results, null);
+    detailedInfo.AppendLine($"Temp files: {(tempFiles != null ? "Available" : "Not available")}");
+    
+    return detailedInfo.ToString();
+}
+
+
+
+
+
+
+
+
+public static CompilerResults CompileWithDetailedErrors(string[] referencedAssemblies, string[] sources, string assemblyName)
+{
+    try
+    {
+        CompilerResults results = CompileFromSource_InMemory(referencedAssemblies, sources, assemblyName);
+        
+        // Check for errors and display detailed information
+        if (results.Errors.HasErrors)
+        {
+            string detailedErrors = GetDetailedCompilationErrorInfo(results);
+            Console.WriteLine(detailedErrors);
+            
+            // Save to log file
+            string logPath = Path.Combine(Utility.TempDirFullPath, $"CompileErrors_{DateTime.Now:yyyyMMdd_HHmmss}.log");
+            File.WriteAllText(logPath, detailedErrors);
+            Console.WriteLine($"Error details saved to file: {logPath}");
+        }
+        
+        return results;
+    }
+    catch (Exception ex)
+    {
+        // Log unexpected exceptions
+        StringBuilder exceptionInfo = new StringBuilder();
+        exceptionInfo.AppendLine("=== Unexpected Compilation Error ===");
+        exceptionInfo.AppendLine($"Error message: {ex.Message}");
+        exceptionInfo.AppendLine($"Error type: {ex.GetType().FullName}");
+        exceptionInfo.AppendLine($"StackTrace:\n{ex.StackTrace}");
+        
+        // Check inner exceptions
+        if (ex.InnerException != null)
+        {
+            exceptionInfo.AppendLine("\nInner Exception:");
+            exceptionInfo.AppendLine($"Message: {ex.InnerException.Message}");
+            exceptionInfo.AppendLine($"Type: {ex.InnerException.GetType().FullName}");
+            exceptionInfo.AppendLine($"StackTrace:\n{ex.InnerException.StackTrace}");
+        }
+        
+        Console.WriteLine(exceptionInfo.ToString());
+        
+        // Create an empty compiler result with a manual error
+        CompilerResults errorResults = new CompilerResults(new TempFileCollection());
+        CompilerError customError = new CompilerError();
+        customError.ErrorText = $"System error during compilation: {ex.Message}";
+        customError.IsWarning = false;
+        errorResults.Errors.Add(customError);
+        
+        return errorResults;
+    }
 }
