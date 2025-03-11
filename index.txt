@@ -36,34 +36,34 @@ public static class RuntimeErrorHelper
     {
         if (results.Errors.HasErrors)
         {
-            // نمایش خطاهای کامپایل
+            // Display compilation errors
             return GetCompilationErrors(results);
         }
 
         try
         {
-            // بارگذاری اسمبلی کامپایل شده با استفاده از Reflection
+            // Load the compiled assembly using Reflection
             Assembly assembly = Assembly.LoadFile(assemblyPath);
             
-            // ایجاد یک AppDomain جدید برای اجرای کد در یک محیط ایزوله
+            // Create a new AppDomain for executing code in an isolated environment
             AppDomain domain = AppDomain.CreateDomain("ExecutionDomain");
             
             try
             {
-                // پیدا کردن متد اصلی یا متد مورد نظر برای اجرا
+                // Find the main method or the desired method to execute
                 Type[] types = assembly.GetTypes();
                 foreach (Type type in types)
                 {
                     try
                     {
-                        // بدست آوردن متدهای تایپ
+                        // Retrieve methods of the type
                         MethodInfo[] methods = type.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance);
                         
                         foreach (MethodInfo method in methods)
                         {
                             try
                             {
-                                // برای متدهای غیر سازنده و بدون پارامتر (یا با پارامترهای اختیاری)
+                                // For non-constructor methods with no parameters (or with optional parameters)
                                 if (!method.IsConstructor && 
                                     (method.GetParameters().Length == 0 || 
                                      method.GetParameters().All(p => p.IsOptional)))
@@ -71,18 +71,18 @@ public static class RuntimeErrorHelper
                                     object instance = null;
                                     if (!method.IsStatic)
                                     {
-                                        // ایجاد نمونه از کلاس برای متدهای غیر استاتیک
+                                        // Create an instance of the class for non-static methods
                                         instance = Activator.CreateInstance(type);
                                     }
                                     
                                     try
                                     {
-                                        // اجرای متد و بررسی خطاها
+                                        // Execute the method and check for errors
                                         method.Invoke(instance, null);
                                     }
                                     catch (Exception ex)
                                     {
-                                        // بدست آوردن خطای اصلی
+                                        // Retrieve the original exception
                                         Exception innerException = ex;
                                         while (innerException is TargetInvocationException && innerException.InnerException != null)
                                         {
@@ -95,31 +95,31 @@ public static class RuntimeErrorHelper
                             }
                             catch (Exception ex)
                             {
-                                // خطای مربوط به اجرای متد
-                                return $"خطا در اجرای متد {method.Name}: {GetDetailedExceptionInfo(ex)}";
+                                // Error executing method
+                                return $"Error executing method {method.Name}: {GetDetailedExceptionInfo(ex)}";
                             }
                         }
                     }
                     catch (Exception ex)
                     {
-                        // خطای مربوط به پردازش تایپ
-                        return $"خطا در بررسی تایپ {type.FullName}: {GetDetailedExceptionInfo(ex)}";
+                        // Error processing type
+                        return $"Error processing type {type.FullName}: {GetDetailedExceptionInfo(ex)}";
                     }
                 }
             }
             finally
             {
-                // پاکسازی AppDomain
+                // Clean up AppDomain
                 AppDomain.Unload(domain);
             }
             
-            return "اجرای کد بدون خطا انجام شد.";
+            return "Code executed without errors.";
         }
         catch (ReflectionTypeLoadException ex)
         {
-            // خطای بارگذاری تایپ‌ها
+            // Errors loading types
             StringBuilder sb = new StringBuilder();
-            sb.AppendLine("خطای بارگذاری تایپ‌ها:");
+            sb.AppendLine("Errors loading types:");
             
             foreach (Exception loaderEx in ex.LoaderExceptions)
             {
@@ -130,7 +130,7 @@ public static class RuntimeErrorHelper
         }
         catch (Exception ex)
         {
-            // سایر خطاها
+            // Other errors
             return GetDetailedExceptionInfo(ex);
         }
     }
@@ -138,14 +138,14 @@ public static class RuntimeErrorHelper
     private static string GetCompilationErrors(CompilerResults results)
     {
         StringBuilder sb = new StringBuilder();
-        sb.AppendLine("خطاهای کامپایل:");
+        sb.AppendLine("Compilation errors:");
         
         foreach (CompilerError error in results.Errors)
         {
-            sb.AppendLine($"فایل: {error.FileName}");
-            sb.AppendLine($"خط: {error.Line}, ستون: {error.Column}");
-            sb.AppendLine($"کد خطا: {error.ErrorNumber}");
-            sb.AppendLine($"پیام خطا: {error.ErrorText}");
+            sb.AppendLine($"File: {error.FileName}");
+            sb.AppendLine($"Line: {error.Line}, Column: {error.Column}");
+            sb.AppendLine($"Error Code: {error.ErrorNumber}");
+            sb.AppendLine($"Error Message: {error.ErrorText}");
             sb.AppendLine("------------------------------");
         }
         
@@ -155,24 +155,24 @@ public static class RuntimeErrorHelper
     private static string GetDetailedExceptionInfo(Exception ex)
     {
         StringBuilder sb = new StringBuilder();
-        sb.AppendLine($"نوع خطا: {ex.GetType().FullName}");
-        sb.AppendLine($"پیام خطا: {ex.Message}");
-        sb.AppendLine($"منبع خطا: {ex.Source}");
+        sb.AppendLine($"Exception Type: {ex.GetType().FullName}");
+        sb.AppendLine($"Error Message: {ex.Message}");
+        sb.AppendLine($"Error Source: {ex.Source}");
         
-        // اطلاعات استک تریس
+        // Stack trace information
         if (!string.IsNullOrEmpty(ex.StackTrace))
         {
-            sb.AppendLine("استک تریس:");
+            sb.AppendLine("Stack Trace:");
             sb.AppendLine(ex.StackTrace);
         }
         
-        // دریافت اطلاعات بیشتر با استفاده از Reflection
+        // Retrieve additional information using Reflection
         PropertyInfo[] properties = ex.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance);
         
-        sb.AppendLine("اطلاعات تکمیلی:");
+        sb.AppendLine("Additional Info:");
         foreach (PropertyInfo property in properties)
         {
-            // پراپرتی‌های استاندارد Exception را نمایش نده
+            // Skip standard Exception properties
             if (property.Name != "StackTrace" && 
                 property.Name != "Message" && 
                 property.Name != "Source" &&
@@ -188,16 +188,16 @@ public static class RuntimeErrorHelper
                 }
                 catch
                 {
-                    // در صورت بروز خطا در هنگام دریافت مقدار پراپرتی
-                    sb.AppendLine($"{property.Name}: <خطا در دریافت مقدار>");
+                    // In case of an error retrieving the property value
+                    sb.AppendLine($"{property.Name}: <Error retrieving value>");
                 }
             }
         }
         
-        // بررسی خطاهای داخلی
+        // Check for inner exceptions
         if (ex.InnerException != null)
         {
-            sb.AppendLine("خطای داخلی:");
+            sb.AppendLine("Inner Exception:");
             sb.AppendLine(GetDetailedExceptionInfo(ex.InnerException));
         }
         
