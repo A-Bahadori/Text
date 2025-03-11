@@ -1,70 +1,206 @@
-string dllPath = compilerResults.PathToAssembly;
-                string pdbPath = Path.ChangeExtension(dllPath, ".pdb");
-                Console.WriteLine($"Assembly saved to: {dllPath}");
-
-                // 5. ایجاد AppDomain جدید
-                var domainSetup = new AppDomainSetup
-                {
-                    ApplicationBase = AppDomain.CurrentDomain.BaseDirectory,
-                    ShadowCopyFiles = "true", // جلوگیری از قفل فایل
-                    CachePath = Path.Combine(Path.GetTempPath(), "ShadowCopyCache")
-                };
-
-                var appDomain = AppDomain.CreateDomain("DynamicDomain", null, domainSetup);
-
-                try
-                {
-                    // 6. ایجاد Proxy در AppDomain جدید
-                    var proxy = (DomainProxy)appDomain.CreateInstanceAndUnwrap(
-                        typeof(DomainProxy).Assembly.FullName,
-                        typeof(DomainProxy).FullName);
-
-                    // 7. اجرای متد و دریافت خطا
-                    Exception runtimeError = proxy.ExecuteMethod(dllPath, "DynamicCode.Calculator", "Divide", new object[] { 10, 0 });
-
-                    if (runtimeError != null)
-                    {
-                        Console.WriteLine("\nRuntime Error Details:");
-                        Console.WriteLine($"Message: {runtimeError.Message}");
-
-                        // استخراج جزئیات خطای دقیق
-                        StackTrace stackTrace = new StackTrace(runtimeError, true);
-                        foreach (StackFrame frame in stackTrace.GetFrames())
-                        {
-                            Console.WriteLine($"\nMethod: {frame.GetMethod().DeclaringType}.{frame.GetMethod().Name}");
-                            Console.WriteLine($"File: {frame.GetFileName()}");
-                            Console.WriteLine($"Line: {frame.GetFileLineNumber()}");
-                        }
-                    }
-                }
-                finally
-                {
-                    // 8. Unload کردن AppDomain
-                    AppDomain.Unload(appDomain);
-                }
-
-
-
- public class DomainProxy : MarshalByRefObject
+private static CompilerResults Compile(string[] referencedAssemblies, bool generateInMemory, 
+    string[] sources, string assemblyFullName) 
+{
+    // کد قبلی شما
+    // ...
+    
+    results = codeCompiler.CompileAssemblyFromSource(compileParams, sources);
+    
+    // بررسی خطاهای زمان اجرا
+    if (!results.Errors.HasErrors && !string.IsNullOrEmpty(assemblyFullName))
     {
-        public Exception ExecuteMethod(string assemblyPath, string typeName, string methodName, object[] parameters)
+        string errorDetails = RuntimeErrorHelper.GetDetailedRuntimeError(results, assemblyFullName);
+        Console.WriteLine(errorDetails);
+        // یا می‌توانید errorDetails را در لاگ یا UI نمایش دهید
+    }
+    
+    return results;
+}
+
+
+
+--------------------------
+
+using System;
+using System.Reflection;
+using System.Text;
+using System.CodeDom.Compiler;
+using System.IO;
+using System.Diagnostics;
+using System.Collections.Generic;
+using System.Linq;
+
+public static class RuntimeErrorHelper
+{
+    public static string GetDetailedRuntimeError(CompilerResults results, string assemblyPath)
+    {
+        if (results.Errors.HasErrors)
         {
+            // نمایش خطاهای کامپایل
+            return GetCompilationErrors(results);
+        }
+
+        try
+        {
+            // بارگذاری اسمبلی کامپایل شده با استفاده از Reflection
+            Assembly assembly = Assembly.LoadFile(assemblyPath);
+            
+            // ایجاد یک AppDomain جدید برای اجرای کد در یک محیط ایزوله
+            AppDomain domain = AppDomain.CreateDomain("ExecutionDomain");
+            
             try
             {
-                // بارگذاری اسمبلی
-                Assembly assembly = Assembly.LoadFrom(assemblyPath);
-                Type type = assembly.GetType(typeName);
-                MethodInfo method = type.GetMethod(methodName);
-                object instance = Activator.CreateInstance(type);
-
-                // اجرای متد
-                method.Invoke(instance, parameters);
-                return null;
+                // پیدا کردن متد اصلی یا متد مورد نظر برای اجرا
+                Type[] types = assembly.GetTypes();
+                foreach (Type type in types)
+                {
+                    try
+                    {
+                        // بدست آوردن متدهای تایپ
+                        MethodInfo[] methods = type.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance);
+                        
+                        foreach (MethodInfo method in methods)
+                        {
+                            try
+                            {
+                                // برای متدهای غیر سازنده و بدون پارامتر (یا با پارامترهای اختیاری)
+                                if (!method.IsConstructor && 
+                                    (method.GetParameters().Length == 0 || 
+                                     method.GetParameters().All(p => p.IsOptional)))
+                                {
+                                    object instance = null;
+                                    if (!method.IsStatic)
+                                    {
+                                        // ایجاد نمونه از کلاس برای متدهای غیر استاتیک
+                                        instance = Activator.CreateInstance(type);
+                                    }
+                                    
+                                    try
+                                    {
+                                        // اجرای متد و بررسی خطاها
+                                        method.Invoke(instance, null);
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        // بدست آوردن خطای اصلی
+                                        Exception innerException = ex;
+                                        while (innerException is TargetInvocationException && innerException.InnerException != null)
+                                        {
+                                            innerException = innerException.InnerException;
+                                        }
+                                        
+                                        return GetDetailedExceptionInfo(innerException);
+                                    }
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                // خطای مربوط به اجرای متد
+                                return $"خطا در اجرای متد {method.Name}: {GetDetailedExceptionInfo(ex)}";
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        // خطای مربوط به پردازش تایپ
+                        return $"خطا در بررسی تایپ {type.FullName}: {GetDetailedExceptionInfo(ex)}";
+                    }
+                }
             }
-            catch (Exception ex)
+            finally
             {
-                // بازگرداندن خطا به AppDomain اصلی
-                return ex.InnerException ?? ex;
+                // پاکسازی AppDomain
+                AppDomain.Unload(domain);
             }
+            
+            return "اجرای کد بدون خطا انجام شد.";
+        }
+        catch (ReflectionTypeLoadException ex)
+        {
+            // خطای بارگذاری تایپ‌ها
+            StringBuilder sb = new StringBuilder();
+            sb.AppendLine("خطای بارگذاری تایپ‌ها:");
+            
+            foreach (Exception loaderEx in ex.LoaderExceptions)
+            {
+                sb.AppendLine(GetDetailedExceptionInfo(loaderEx));
+            }
+            
+            return sb.ToString();
+        }
+        catch (Exception ex)
+        {
+            // سایر خطاها
+            return GetDetailedExceptionInfo(ex);
         }
     }
+    
+    private static string GetCompilationErrors(CompilerResults results)
+    {
+        StringBuilder sb = new StringBuilder();
+        sb.AppendLine("خطاهای کامپایل:");
+        
+        foreach (CompilerError error in results.Errors)
+        {
+            sb.AppendLine($"فایل: {error.FileName}");
+            sb.AppendLine($"خط: {error.Line}, ستون: {error.Column}");
+            sb.AppendLine($"کد خطا: {error.ErrorNumber}");
+            sb.AppendLine($"پیام خطا: {error.ErrorText}");
+            sb.AppendLine("------------------------------");
+        }
+        
+        return sb.ToString();
+    }
+    
+    private static string GetDetailedExceptionInfo(Exception ex)
+    {
+        StringBuilder sb = new StringBuilder();
+        sb.AppendLine($"نوع خطا: {ex.GetType().FullName}");
+        sb.AppendLine($"پیام خطا: {ex.Message}");
+        sb.AppendLine($"منبع خطا: {ex.Source}");
+        
+        // اطلاعات استک تریس
+        if (!string.IsNullOrEmpty(ex.StackTrace))
+        {
+            sb.AppendLine("استک تریس:");
+            sb.AppendLine(ex.StackTrace);
+        }
+        
+        // دریافت اطلاعات بیشتر با استفاده از Reflection
+        PropertyInfo[] properties = ex.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance);
+        
+        sb.AppendLine("اطلاعات تکمیلی:");
+        foreach (PropertyInfo property in properties)
+        {
+            // پراپرتی‌های استاندارد Exception را نمایش نده
+            if (property.Name != "StackTrace" && 
+                property.Name != "Message" && 
+                property.Name != "Source" &&
+                property.Name != "InnerException" &&
+                property.Name != "Data" &&
+                property.Name != "TargetSite" &&
+                property.Name != "HelpLink")
+            {
+                try
+                {
+                    object value = property.GetValue(ex);
+                    sb.AppendLine($"{property.Name}: {value}");
+                }
+                catch
+                {
+                    // در صورت بروز خطا در هنگام دریافت مقدار پراپرتی
+                    sb.AppendLine($"{property.Name}: <خطا در دریافت مقدار>");
+                }
+            }
+        }
+        
+        // بررسی خطاهای داخلی
+        if (ex.InnerException != null)
+        {
+            sb.AppendLine("خطای داخلی:");
+            sb.AppendLine(GetDetailedExceptionInfo(ex.InnerException));
+        }
+        
+        return sb.ToString();
+    }
+}
