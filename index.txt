@@ -1,206 +1,30 @@
-private static CompilerResults Compile(string[] referencedAssemblies, bool generateInMemory, 
-    string[] sources, string assemblyFullName) 
+<?xml version="1.0" encoding="utf-8"?>
+<configuration>
+  <system.webServer>
+    <handlers>
+      <add name="aspNetCore" 
+           path="*" 
+           verb="*" 
+           modules="AspNetCoreModuleV2" 
+           resourceType="Unspecified" />
+    </handlers>
+    <aspNetCore 
+      processPath="dotnet" 
+      arguments=".\YourProjectName.dll" 
+      stdoutLogEnabled="false" 
+      hostingModel="InProcess" />
+  </system.webServer>
+</configuration>
+
+
+
 {
-    // کد قبلی شما
-    // ...
-    
-    results = codeCompiler.CompileAssemblyFromSource(compileParams, sources);
-    
-    // بررسی خطاهای زمان اجرا
-    if (!results.Errors.HasErrors && !string.IsNullOrEmpty(assemblyFullName))
-    {
-        string errorDetails = RuntimeErrorHelper.GetDetailedRuntimeError(results, assemblyFullName);
-        Console.WriteLine(errorDetails);
-        // یا می‌توانید errorDetails را در لاگ یا UI نمایش دهید
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
     }
-    
-    return results;
+  },
+  "AllowedHosts": "*"
 }
 
-
-
---------------------------
-
-using System;
-using System.Reflection;
-using System.Text;
-using System.CodeDom.Compiler;
-using System.IO;
-using System.Diagnostics;
-using System.Collections.Generic;
-using System.Linq;
-
-public static class RuntimeErrorHelper
-{
-    public static string GetDetailedRuntimeError(CompilerResults results, string assemblyPath)
-    {
-        if (results.Errors.HasErrors)
-        {
-            // Display compilation errors
-            return GetCompilationErrors(results);
-        }
-
-        try
-        {
-            // Load the compiled assembly using Reflection
-            Assembly assembly = Assembly.LoadFile(assemblyPath);
-            
-            // Create a new AppDomain for executing code in an isolated environment
-            AppDomain domain = AppDomain.CreateDomain("ExecutionDomain");
-            
-            try
-            {
-                // Find the main method or the desired method to execute
-                Type[] types = assembly.GetTypes();
-                foreach (Type type in types)
-                {
-                    try
-                    {
-                        // Retrieve methods of the type
-                        MethodInfo[] methods = type.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance);
-                        
-                        foreach (MethodInfo method in methods)
-                        {
-                            try
-                            {
-                                // For non-constructor methods with no parameters (or with optional parameters)
-                                if (!method.IsConstructor && 
-                                    (method.GetParameters().Length == 0 || 
-                                     method.GetParameters().All(p => p.IsOptional)))
-                                {
-                                    object instance = null;
-                                    if (!method.IsStatic)
-                                    {
-                                        // Create an instance of the class for non-static methods
-                                        instance = Activator.CreateInstance(type);
-                                    }
-                                    
-                                    try
-                                    {
-                                        // Execute the method and check for errors
-                                        method.Invoke(instance, null);
-                                    }
-                                    catch (Exception ex)
-                                    {
-                                        // Retrieve the original exception
-                                        Exception innerException = ex;
-                                        while (innerException is TargetInvocationException && innerException.InnerException != null)
-                                        {
-                                            innerException = innerException.InnerException;
-                                        }
-                                        
-                                        return GetDetailedExceptionInfo(innerException);
-                                    }
-                                }
-                            }
-                            catch (Exception ex)
-                            {
-                                // Error executing method
-                                return $"Error executing method {method.Name}: {GetDetailedExceptionInfo(ex)}";
-                            }
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        // Error processing type
-                        return $"Error processing type {type.FullName}: {GetDetailedExceptionInfo(ex)}";
-                    }
-                }
-            }
-            finally
-            {
-                // Clean up AppDomain
-                AppDomain.Unload(domain);
-            }
-            
-            return "Code executed without errors.";
-        }
-        catch (ReflectionTypeLoadException ex)
-        {
-            // Errors loading types
-            StringBuilder sb = new StringBuilder();
-            sb.AppendLine("Errors loading types:");
-            
-            foreach (Exception loaderEx in ex.LoaderExceptions)
-            {
-                sb.AppendLine(GetDetailedExceptionInfo(loaderEx));
-            }
-            
-            return sb.ToString();
-        }
-        catch (Exception ex)
-        {
-            // Other errors
-            return GetDetailedExceptionInfo(ex);
-        }
-    }
-    
-    private static string GetCompilationErrors(CompilerResults results)
-    {
-        StringBuilder sb = new StringBuilder();
-        sb.AppendLine("Compilation errors:");
-        
-        foreach (CompilerError error in results.Errors)
-        {
-            sb.AppendLine($"File: {error.FileName}");
-            sb.AppendLine($"Line: {error.Line}, Column: {error.Column}");
-            sb.AppendLine($"Error Code: {error.ErrorNumber}");
-            sb.AppendLine($"Error Message: {error.ErrorText}");
-            sb.AppendLine("------------------------------");
-        }
-        
-        return sb.ToString();
-    }
-    
-    private static string GetDetailedExceptionInfo(Exception ex)
-    {
-        StringBuilder sb = new StringBuilder();
-        sb.AppendLine($"Exception Type: {ex.GetType().FullName}");
-        sb.AppendLine($"Error Message: {ex.Message}");
-        sb.AppendLine($"Error Source: {ex.Source}");
-        
-        // Stack trace information
-        if (!string.IsNullOrEmpty(ex.StackTrace))
-        {
-            sb.AppendLine("Stack Trace:");
-            sb.AppendLine(ex.StackTrace);
-        }
-        
-        // Retrieve additional information using Reflection
-        PropertyInfo[] properties = ex.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance);
-        
-        sb.AppendLine("Additional Info:");
-        foreach (PropertyInfo property in properties)
-        {
-            // Skip standard Exception properties
-            if (property.Name != "StackTrace" && 
-                property.Name != "Message" && 
-                property.Name != "Source" &&
-                property.Name != "InnerException" &&
-                property.Name != "Data" &&
-                property.Name != "TargetSite" &&
-                property.Name != "HelpLink")
-            {
-                try
-                {
-                    object value = property.GetValue(ex);
-                    sb.AppendLine($"{property.Name}: {value}");
-                }
-                catch
-                {
-                    // In case of an error retrieving the property value
-                    sb.AppendLine($"{property.Name}: <Error retrieving value>");
-                }
-            }
-        }
-        
-        // Check for inner exceptions
-        if (ex.InnerException != null)
-        {
-            sb.AppendLine("Inner Exception:");
-            sb.AppendLine(GetDetailedExceptionInfo(ex.InnerException));
-        }
-        
-        return sb.ToString();
-    }
-}
