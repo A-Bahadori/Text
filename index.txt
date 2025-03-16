@@ -1,30 +1,6 @@
-<?xml version="1.0" encoding="utf-8"?>
-<configuration>
-  <system.webServer>
-    <handlers>
-      <add name="aspNetCore" 
-           path="*" 
-           verb="*" 
-           modules="AspNetCoreModuleV2" 
-           resourceType="Unspecified" />
-    </handlers>
-    <aspNetCore 
-      processPath="dotnet" 
-      arguments=".\YourProjectName.dll" 
-      stdoutLogEnabled="false" 
-      hostingModel="InProcess" />
-  </system.webServer>
-</configuration>
+Get-ChildItem -Path Cert:\LocalMachine\Root | Where-Object { $_.Thumbprint -eq "373F94889E904D191167429D8DB1CA982DBB11C1" } | Remove-Item
 
+Get-ChildItem -Path Cert:\CurrentUser\My | Where-Object { $_.Thumbprint -eq "373F94889E904D191167429D8DB1CA982DBB11C1" } | Remove-Item
 
-
-{
-  "Logging": {
-    "LogLevel": {
-      "Default": "Information",
-      "Microsoft.AspNetCore": "Warning"
-    }
-  },
-  "AllowedHosts": "*"
-}
-
+$thumbprint = "373F94889E904D191167429D8DB1CA982DBB11C1"
+Get-ChildItem -Path Cert:\LocalMachine\Root | Where-Object { $_.Thumbprint -eq $thumbprint } | Remove-Item
