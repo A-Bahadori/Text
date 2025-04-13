@@ -1,21 +1,31 @@
-Title:
-Add Customized applicationhost.config File for Optimized IIS Express Project Execution
-Description:
-This Merge Request includes a customized applicationhost.config file to improve and standardize the project execution process with IIS Express.
-Essential Configuration:
+Description
+This merge request adds a custom `applicationhost.config` file to configure IIS Express for running the project. The changes ensure that the project operates with the specific settings required for our development environment.
 
-Program Arguments Settings:
+Changes Made
+- Added a custom `applicationhost.config` file at `D:\Sink\WebApp\applicationhost.config`.
+- Configured the project to use this file for IIS Express execution.
 
-The path to the customized file must be set in the Program arguments section
-Example: /config:D:\Sink\WebApp\applicationhost.confg /site:WebApp
+Usage Instructions
+To run the project with the custom configuration, please follow these steps:
 
-
-Run/Debug Configuration Settings:
-
-The AppPath variable must be defined in the Environment Variables section
-Example: AppPath=D:\Sink\WebApp
+1. Program Arguments:
+   - Set the program arguments in your IDE's Run/Debug configuration to reference the custom config file. Example:
+/config:D:\Sink\WebApp\applicationhost.config /site:WebApp
 
 
+2. Environment Variables:
+- In the Run/Debug configuration, set the `AppPath` environment variable as follows:
+AppPath=D:\Sink\WebApp
 
-These changes ensure that all team members can run the project with consistent and standardized settings, preventing environment-related errors.
-Please verify these settings in your development environment before approval.
+- This ensures the application can locate the correct directory during execution.
+
+Why This Change?
+- The custom `applicationhost.config` provides specific IIS Express settings tailored to our project, ensuring consistency across the team’s development environments.
+
+Testing
+- The configuration has been tested locally and works with the current project setup.
+- Please test it on your machine to confirm compatibility with your local environment.
+
+Additional Notes
+- Ensure the path `D:\Sink\WebApp` matches your local setup. Adjust the paths in the configuration if needed.
+- For any issues, consult the IIS Express documentation or contact the team for support.
