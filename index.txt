@@ -1,6 +1,21 @@
-Get-ChildItem -Path Cert:\LocalMachine\Root | Where-Object { $_.Thumbprint -eq "373F94889E904D191167429D8DB1CA982DBB11C1" } | Remove-Item
+Title:
+Add Customized applicationhost.config File for Optimized IIS Express Project Execution
+Description:
+This Merge Request includes a customized applicationhost.config file to improve and standardize the project execution process with IIS Express.
+Essential Configuration:
 
-Get-ChildItem -Path Cert:\CurrentUser\My | Where-Object { $_.Thumbprint -eq "373F94889E904D191167429D8DB1CA982DBB11C1" } | Remove-Item
+Program Arguments Settings:
 
-$thumbprint = "373F94889E904D191167429D8DB1CA982DBB11C1"
-Get-ChildItem -Path Cert:\LocalMachine\Root | Where-Object { $_.Thumbprint -eq $thumbprint } | Remove-Item
+The path to the customized file must be set in the Program arguments section
+Example: /config:D:\Sink\WebApp\applicationhost.confg /site:WebApp
+
+
+Run/Debug Configuration Settings:
+
+The AppPath variable must be defined in the Environment Variables section
+Example: AppPath=D:\Sink\WebApp
+
+
+
+These changes ensure that all team members can run the project with consistent and standardized settings, preventing environment-related errors.
+Please verify these settings in your development environment before approval.
