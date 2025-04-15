@@ -79,17 +79,22 @@ namespace SmartInspectSample
         
         public static void LogInteger(string title, int value)
         {
-            _session.LogInteger(title, value);
+            _session.LogText(title, value.ToString());
         }
         
         public static void LogString(string title, string value)
         {
-            _session.LogString(title, value);
+            _session.LogText(title, value);
         }
         
         public static void LogValue(string title, object value)
         {
-            _session.LogValue(title, value);
+            _session.LogText(title, value?.ToString() ?? "(null)");
+        }
+        
+        public static void LogBoolean(string title, bool value)
+        {
+            _session.LogText(title, value.ToString());
         }
         
         public static void LogObject(string title, object value)
@@ -120,13 +125,13 @@ namespace SmartInspectSample
         public static void BeginTimedOperation(string operationName)
         {
             _session.EnterMethod(operationName);
-            _session.LogValue("Start Time", DateTime.Now);
+            _session.LogText("Start Time", DateTime.Now.ToString());
         }
         
         public static void EndTimedOperation(string operationName, DateTime startTime)
         {
             TimeSpan elapsed = DateTime.Now - startTime;
-            _session.LogValue("Elapsed Time (ms)", elapsed.TotalMilliseconds);
+            _session.LogText("Elapsed Time (ms)", elapsed.TotalMilliseconds.ToString());
             _session.LeaveMethod(operationName);
         }
     }
@@ -283,7 +288,7 @@ namespace SmartInspectSample
             finally
             {
                 TimeSpan elapsed = DateTime.Now - startTime;
-                SILogger.LogValue("Save Operation Duration (ms)", elapsed.TotalMilliseconds);
+                SILogger.LogText("Save Operation Duration (ms)", elapsed.TotalMilliseconds.ToString());
                 SILogger.LogMethodExit("SaveOrder");
             }
         }
@@ -313,8 +318,8 @@ namespace SmartInspectSample
                 
                 // لاگ اطلاعات فایل
                 var fileInfo = new FileInfo(filePath);
-                SILogger.LogValue("File Size (bytes)", fileInfo.Length);
-                SILogger.LogValue("Creation Time", fileInfo.CreationTime);
+                SILogger.LogText("File Size (bytes)", fileInfo.Length.ToString());
+                SILogger.LogText("Creation Time", fileInfo.CreationTime.ToString());
                 
                 // لاگ محتوای فایل (برای فایل‌های متنی)
                 if (fileInfo.Extension.ToLower() == ".txt" || fileInfo.Extension.ToLower() == ".log")
@@ -419,8 +424,8 @@ namespace SmartInspectSample
                 // ثبت انواع داده
                 _session.LogInteger("عدد صحیح", 42);
                 _session.LogString("رشته متنی", "متن نمونه");
-                _session.LogBoolean("مقدار منطقی", true);
-                _session.LogDateTime("تاریخ و زمان", DateTime.Now);
+                _session.LogText("مقدار منطقی", true.ToString());
+                _session.LogText("تاریخ و زمان", DateTime.Now.ToString());
                 
                 // تنظیم رنگ موقت
                 _session.Color = Color.Blue;
@@ -489,7 +494,7 @@ namespace SmartInspectSample
                 _session.LogMessage("پایان عملیات زمان‌بر");
                 
                 TimeSpan operationTime = DateTime.Now - operationStart;
-                _session.LogValue("زمان اجرای عملیات (میلی‌ثانیه)", operationTime.TotalMilliseconds);
+                _session.LogText("زمان اجرای عملیات (میلی‌ثانیه)", operationTime.TotalMilliseconds.ToString());
                 
                 // اندازه‌گیری زمان یک حلقه
                 operationStart = DateTime.Now;
@@ -502,12 +507,12 @@ namespace SmartInspectSample
                 
                 operationTime = DateTime.Now - operationStart;
                 _session.LogInteger("مجموع محاسبه شده", sum);
-                _session.LogValue("زمان محاسبه (میلی‌ثانیه)", operationTime.TotalMilliseconds);
+                _session.LogText("زمان محاسبه (میلی‌ثانیه)", operationTime.TotalMilliseconds.ToString());
             }
             finally
             {
                 TimeSpan totalTime = DateTime.Now - startTime;
-                _session.LogValue("زمان کل (میلی‌ثانیه)", totalTime.TotalMilliseconds);
+                _session.LogText("زمان کل (میلی‌ثانیه)", totalTime.TotalMilliseconds.ToString());
                 _session.LeaveMethod("PerformanceMeasurementExample");
             }
         }
@@ -597,8 +602,8 @@ namespace SmartInspectSample
                     
                     // نمایش اطلاعات فایل
                     FileInfo fileInfo = new FileInfo(tempFilePath);
-                    _session.LogValue("اندازه فایل (بایت)", fileInfo.Length);
-                    _session.LogValue("زمان ایجاد", fileInfo.CreationTime);
+                    _session.LogText("اندازه فایل (بایت)", fileInfo.Length.ToString());
+                    _session.LogText("زمان ایجاد", fileInfo.CreationTime.ToString());
                     
                     // لاگ کردن محتوای فایل
                     _session.LogFile("محتوای فایل", tempFilePath);
@@ -679,16 +684,16 @@ namespace SmartInspectSample
                 foreach (var product in order.Products)
                 {
                     decimal itemTotal = product.Price * product.Quantity;
-                    _session.LogValue($"محصول {product.Id}: {product.Name}", itemTotal);
+                    _session.LogText($"محصول {product.Id}: {product.Name}", itemTotal.ToString());
                     total += itemTotal;
                 }
                 
-                _session.LogValue("مجموع نهایی", total);
+                _session.LogText("مجموع نهایی", total.ToString());
                 
                 // 5. ذخیره سفارش
                 bool saveResult = _dataService.SaveOrder(order);
                 
-                _session.LogBoolean("نتیجه ذخیره سفارش", saveResult);
+                _session.LogText("نتیجه ذخیره سفارش", saveResult.ToString());
                 
                 if (saveResult)
                 {
