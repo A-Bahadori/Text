@@ -1,85 +1,365 @@
-// 1. پیکربندی چندگانه: فایل، Named Pipe و TCP/IP
-            SiAuto.Si.Connections = string.Join(",",
-                "file(filename=logs/simple.sil)",
-                "pipe(name=SmartInspectPipe)",
-                "tcp(host=127.0.0.1,port=5050)"
-            );
-            SiAuto.Si.Enabled = true;
+using Gurock.SmartInspect;
 
-            // 2. تنظیم کانال پیش‌فرض و دسته‌بندی‌ها
-            SiAuto.Main.LogChannel = "General";
-            SiAuto.Main.LogMessage("=== برنامه آغاز شد ===");
+class Program
+{
+    // ایجاد یک نمونه از SmartInspect
+    private static readonly SmartInspect _si = new SmartInspect("MyConsoleApp");
+    
+    // ایجاد یک سشن برای لاگ‌گیری
+    private static readonly Session _session = _si.AddSession("MainSession");
+    
+    static void Main(string[] args)
+    {
+        // تنظیم اولیه SmartInspect
+        _si.Connections = "tcp(host=localhost,port=4228)";
+        _si.Enabled = true;
+        
+        // ثبت یک پیام ساده
+        _session.LogMessage("برنامه شروع شد");
+        
+        // اجرای عملیات برنامه
+        int result = CalculateSum(5, 10);
+        
+        // ثبت نتیجه
+        _session.LogValue("نتیجه محاسبه", result);
+        
+        // پایان برنامه
+        _session.LogMessage("برنامه پایان یافت");
+        _si.Dispose();
+    }
+    
+    static int CalculateSum(int a, int b)
+    {
+        return a + b;
+    }
+}
 
-            // 3. سطوح مختلف لاگ
-            SiAuto.Main.LogDebug("Debug: مقدار x اولیه = 0");
-            SiAuto.Main.LogMessage("Info: عملیات در حال انجام");
-            SiAuto.Main.LogWarning("Warning: حافظه در حال پر شدن است");
-            SiAuto.Main.LogError("Error: اتصال به سرور برقرار نشد");
-            SiAuto.Main.LogFatal("Fatal: خطای بحرانی رخ داد");
 
-            // 4. لاگ متغیرها و اشیاء
-            int count = 5;
-            SiAuto.Main.LogVariable("Count", count);
+==============================================================================================
 
-            var user = new { Id = 42, Name = "Alice", Email = "alice@example.com" };
-            SiAuto.Main.LogObject("UserInfo", user);
 
-            // 5. گروه‌بندی لاگ‌ها
-            SiAuto.Main.LogGroupBegin("BatchProcessing");
-            for (int i = 0; i < 3; i++)
-            {
-                SiAuto.Main.LogMessage($"Processing item {i}");
-            }
-            SiAuto.Main.LogGroupEnd("BatchProcessing");
+using Gurock.SmartInspect;
+using System;
+using System.Collections.Generic;
 
-            // 6. زمان‌سنجی عملیات
-            SiAuto.Main.LogMessage("Start timing long operation");
-            SiAuto.Main.LogBegin("LongOperationTimer");
-            Thread.Sleep(500); // شبیه‌سازی عملیات طولانی
-            SiAuto.Main.LogEnd("LongOperationTimer");
-            SiAuto.Main.LogMessage("End timing long operation");
-
-            // 7. ورود و خروج متد
-            SiAuto.Main.LogMethodEntry("CalculateSum");
-            int result = CalculateSum(10, 20);
-            SiAuto.Main.LogMethodExit("CalculateSum");
-            SiAuto.Main.LogVariable("Result", result);
-
-            // 8. لاگ استثنا در try-catch
-            try
-            {
-                int x = 10 / int.Parse("0");
-            }
-            catch (Exception ex)
-            {
-                SiAuto.Main.LogException("Exception in division", ex);
-            }
-
-            // 9. لاگ چندنخی
-            Task[] tasks = new Task[2];
-            for (int t = 0; t < tasks.Length; t++)
-            {
-                int id = t;
-                tasks[t] = Task.Run(() =>
-                {
-                    SiAuto.Main.LogVariable("ThreadId", Thread.CurrentThread.ManagedThreadId);
-                    SiAuto.Main.LogMessage($"Task {id} started");
-                    Thread.Sleep(200);
-                    SiAuto.Main.LogMessage($"Task {id} completed");
-                });
-            }
-            Task.WaitAll(tasks);
-
-            // 10. بستن و خروج
-            SiAuto.Main.LogMessage("=== برنامه به پایان رسید ===");
-            SiAuto.Si.Flush();
-            SiAuto.Si.Close();
-
-            Console.WriteLine("لاگ‌ها در پوشه logs/simple.sil ذخیره شدند. با SmartInspect Console مشاهده کنید.");
-            Console.ReadKey();
-        }
-
-        static int CalculateSum(int a, int b)
+class Program
+{
+    private static readonly SmartInspect _si = new SmartInspect("AdvancedLogging");
+    private static readonly Session _session = _si.AddSession("MainSession");
+    
+    static void Main(string[] args)
+    {
+        _si.Connections = "file(filename=\"C:\\Logs\\AppLog.sil\")";
+        _si.Enabled = true;
+        
+        try
         {
-            return a + b;
+            // ثبت لاگ در سطوح مختلف
+            _session.LogVerbose("این یک پیام با جزئیات است");
+            _session.LogDebug("این یک پیام برای دیباگ است");
+            _session.LogMessage("این یک پیام معمولی است");
+            _session.LogWarning("این یک هشدار است");
+            _session.LogError("این یک خطا است");
+            
+            // ثبت یک آبجکت
+            var user = new User { Id = 1, Name = "محمد", Email = "mohammad@example.com" };
+            _session.LogObject("اطلاعات کاربر", user);
+            
+            // ثبت یک لیست
+            List<string> items = new List<string> { "آیتم ۱", "آیتم ۲", "آیتم ۳" };
+            _session.LogCollection("لیست آیتم‌ها", items);
+            
+            // شبیه‌سازی یک خطا
+            ProcessData(null);
         }
+        catch (Exception ex)
+        {
+            // ثبت استثنا
+            _session.LogException("خطا در اجرای برنامه", ex);
+        }
+        finally
+        {
+            _si.Dispose();
+        }
+    }
+    
+    static void ProcessData(string data)
+    {
+        _session.EnterMethod("ProcessData");
+        
+        try
+        {
+            // بررسی و ثبت پارامتر ورودی
+            _session.LogValue("پارامتر ورودی data", data);
+            
+            // ایجاد خطای عمدی در صورت null بودن پارامتر
+            if (data == null)
+            {
+                throw new ArgumentNullException("data");
+            }
+            
+            // عملیات پردازش
+            string result = data.ToUpper();
+            _session.LogValue("نتیجه پردازش", result);
+        }
+        finally
+        {
+            _session.LeaveMethod("ProcessData");
+        }
+    }
+}
+
+class User
+{
+    public int Id { get; set; }
+    public string Name { get; set; }
+    public string Email { get; set; }
+}
+
+
+======================================================================================================
+
+using Gurock.SmartInspect;
+using System;
+using System.Threading;
+
+class Program
+{
+    private static readonly SmartInspect _si = new SmartInspect("PerformanceMonitoring");
+    private static readonly Session _session = _si.AddSession("MainSession");
+    
+    static void Main(string[] args)
+    {
+        _si.Connections = "tcp(host=localhost,port=4228)";
+        _si.Enabled = true;
+        
+        // اندازه‌گیری زمان اجرای کل برنامه
+        using (var watch = _session.WatchMethod("Main"))
+        {
+            // انجام عملیات سنگین
+            ProcessLargeData(100);
+        }
+        
+        _si.Dispose();
+    }
+    
+    static void ProcessLargeData(int count)
+    {
+        _session.EnterMethod("ProcessLargeData");
+        
+        try
+        {
+            // ایجاد یک شی نمایش‌دهنده پیشرفت
+            using (var progress = _session.BeginProcess("پردازش داده‌های بزرگ", count))
+            {
+                for (int i = 0; i < count; i++)
+                {
+                    // انجام عملیات
+                    using (var itemWatch = _session.WatchProcess($"پردازش آیتم {i}"))
+                    {
+                        // شبیه‌سازی یک عملیات زمان‌بر
+                        Thread.Sleep(50);
+                        
+                        // ثبت پیشرفت
+                        progress.Increment();
+                        
+                        // لاگ اضافی برای بعضی از ایتم‌ها
+                        if (i % 10 == 0)
+                        {
+                            _session.LogMessage($"پردازش {i} آیتم انجام شد");
+                        }
+                    }
+                }
+            }
+            
+            // بررسی مصرف حافظه
+            _session.LogValue("مصرف حافظه (مگابایت)", 
+                Math.Round(GC.GetTotalMemory(false) / (1024.0 * 1024.0), 2));
+        }
+        finally
+        {
+            _session.LeaveMethod("ProcessLargeData");
+        }
+    }
+}
+
+
+====================================================================================================
+
+
+using Gurock.SmartInspect;
+using System;
+
+// کلاس Singleton برای مدیریت SmartInspect
+public class SIManager
+{
+    private static readonly Lazy<SIManager> _instance = new Lazy<SIManager>(() => new SIManager());
+    
+    public static SIManager Instance => _instance.Value;
+    
+    private readonly SmartInspect _smartInspect;
+    
+    private SIManager()
+    {
+        _smartInspect = new SmartInspect("MyApplication");
+        
+        // تنظیمات پیش‌فرض
+        _smartInspect.Connections = "file(filename=\"C:\\Logs\\AppLog.sil\", rotate=daily, maxparts=10)";
+        _smartInspect.Enabled = true;
+    }
+    
+    public Session GetSession(string name)
+    {
+        return _smartInspect.AddSession(name);
+    }
+    
+    public void SetConnections(string connections)
+    {
+        _smartInspect.Connections = connections;
+    }
+    
+    public void SetEnabled(bool enabled)
+    {
+        _smartInspect.Enabled = enabled;
+    }
+    
+    public void Dispose()
+    {
+        _smartInspect.Dispose();
+    }
+}
+
+// کلاس اصلی برنامه
+class Program
+{
+    static void Main(string[] args)
+    {
+        // استفاده از SIManager
+        SIManager.Instance.SetConnections("file(filename=\"C:\\Logs\\AppLog.sil\", rotate=daily)");
+        
+        // ایجاد یک سشن برای Main
+        var mainSession = SIManager.Instance.GetSession("Main");
+        mainSession.LogMessage("برنامه شروع شد");
+        
+        // استفاده از کلاس‌های دیگر
+        var dataProcessor = new DataProcessor();
+        dataProcessor.Process("داده تست");
+        
+        var reportGenerator = new ReportGenerator();
+        reportGenerator.Generate();
+        
+        mainSession.LogMessage("برنامه پایان یافت");
+        SIManager.Instance.Dispose();
+    }
+}
+
+// کلاس پردازش داده‌ها
+class DataProcessor
+{
+    private readonly Session _session;
+    
+    public DataProcessor()
+    {
+        _session = SIManager.Instance.GetSession("DataProcessor");
+    }
+    
+    public void Process(string data)
+    {
+        _session.EnterMethod("Process");
+        
+        try
+        {
+            _session.LogValue("داده ورودی", data);
+            
+            // شبیه‌سازی پردازش
+            string result = $"پردازش شده: {data.ToUpper()}";
+            
+            _session.LogValue("نتیجه", result);
+        }
+        catch (Exception ex)
+        {
+            _session.LogException("خطا در پردازش داده", ex);
+            throw;
+        }
+        finally
+        {
+            _session.LeaveMethod("Process");
+        }
+    }
+}
+
+// کلاس تولید گزارش
+class ReportGenerator
+{
+    private readonly Session _session;
+    
+    public ReportGenerator()
+    {
+        _session = SIManager.Instance.GetSession("ReportGenerator");
+    }
+    
+    public void Generate()
+    {
+        using (var watch = _session.WatchMethod("Generate"))
+        {
+            _session.LogMessage("شروع تولید گزارش");
+            
+            // شبیه‌سازی عملیات زمان‌بر
+            System.Threading.Thread.Sleep(500);
+            
+            _session.LogMessage("گزارش با موفقیت تولید شد");
+        }
+    }
+}
+
+
+==================================================================================================
+
+using Gurock.SmartInspect;
+using System;
+
+class Program
+{
+    private static readonly SmartInspect _si = new SmartInspect("AdvancedConfiguration");
+    private static readonly Session _session = _si.AddSession("MainSession");
+    
+    static void Main(string[] args)
+    {
+        // تنظیمات پیشرفته اتصال
+        _si.Connections = "file(filename=\"C:\\Logs\\AppLog.sil\", rotate=daily, " +
+                          "maxparts=10, maxsize=10mb, append=true);" +
+                          "tcp(host=localhost,port=4228)";
+        
+        // تنظیم فیلتر برای سطوح مختلف لاگ
+        _si.Level = Level.Debug;
+        
+        // فعال کردن SmartInspect
+        _si.Enabled = true;
+        
+        // ثبت اطلاعات سیستم
+        _session.LogSystem("اطلاعات سیستم");
+        
+        // تنظیم رنگ و آیکون برای لاگ‌ها
+        _session.Color = Color.LightBlue;
+        _session.DefaultIcon = SessionIcon.Information;
+        
+        // ثبت لاگ‌های مختلف
+        _session.LogMessage("این یک پیام با رنگ آبی روشن است");
+        
+        // تغییر رنگ و آیکون موقت برای یک لاگ خاص
+        using (var colorContext = _session.BeginColor(Color.Orange))
+        {
+            _session.LogMessage("این پیام نارنجی است");
+        }
+        
+        // لاگ‌های مختلف با سطوح مختلف
+        _session.LogVerbose("این لاگ فقط برای سطح Verbose قابل مشاهده است");
+        _session.LogDebug("این لاگ برای سطح Debug و بالاتر قابل مشاهده است");
+        _session.LogWarning("این هشدار در همه سطوح بالاتر از Warning قابل مشاهده است");
+        _session.LogError("این خطا در همه سطوح بالاتر از Error قابل مشاهده است");
+        _session.LogFatal("این خطای بحرانی در همه سطوح قابل مشاهده است");
+        
+        // اتمام کار با SmartInspect
+        _si.Dispose();
+    }
+}
