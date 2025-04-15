@@ -1,19 +1,85 @@
- // Logging Examples
-        SiAuto.Main.LogMessage("Application started");
-        SiAuto.Main.LogDebug("This is a debug message");
-        SiAuto.Main.LogWarning("This is a warning");
-        SiAuto.Main.LogError("This is an error");
-        SiAuto.Main.LogFatal("Something fatal happened");
-        // Log custom object
-        var user = new { Id = 1, Name = "John", Email = "john@example.com" };
-        SiAuto.Main.LogObject("User Info", user);
-        // Example try-catch
-        try
-        {
-            var x = 5 / int.Parse("0");
+// 1. پیکربندی چندگانه: فایل، Named Pipe و TCP/IP
+            SiAuto.Si.Connections = string.Join(",",
+                "file(filename=logs/simple.sil)",
+                "pipe(name=SmartInspectPipe)",
+                "tcp(host=127.0.0.1,port=5050)"
+            );
+            SiAuto.Si.Enabled = true;
+
+            // 2. تنظیم کانال پیش‌فرض و دسته‌بندی‌ها
+            SiAuto.Main.LogChannel = "General";
+            SiAuto.Main.LogMessage("=== برنامه آغاز شد ===");
+
+            // 3. سطوح مختلف لاگ
+            SiAuto.Main.LogDebug("Debug: مقدار x اولیه = 0");
+            SiAuto.Main.LogMessage("Info: عملیات در حال انجام");
+            SiAuto.Main.LogWarning("Warning: حافظه در حال پر شدن است");
+            SiAuto.Main.LogError("Error: اتصال به سرور برقرار نشد");
+            SiAuto.Main.LogFatal("Fatal: خطای بحرانی رخ داد");
+
+            // 4. لاگ متغیرها و اشیاء
+            int count = 5;
+            SiAuto.Main.LogVariable("Count", count);
+
+            var user = new { Id = 42, Name = "Alice", Email = "alice@example.com" };
+            SiAuto.Main.LogObject("UserInfo", user);
+
+            // 5. گروه‌بندی لاگ‌ها
+            SiAuto.Main.LogGroupBegin("BatchProcessing");
+            for (int i = 0; i < 3; i++)
+            {
+                SiAuto.Main.LogMessage($"Processing item {i}");
+            }
+            SiAuto.Main.LogGroupEnd("BatchProcessing");
+
+            // 6. زمان‌سنجی عملیات
+            SiAuto.Main.LogMessage("Start timing long operation");
+            SiAuto.Main.LogBegin("LongOperationTimer");
+            Thread.Sleep(500); // شبیه‌سازی عملیات طولانی
+            SiAuto.Main.LogEnd("LongOperationTimer");
+            SiAuto.Main.LogMessage("End timing long operation");
+
+            // 7. ورود و خروج متد
+            SiAuto.Main.LogMethodEntry("CalculateSum");
+            int result = CalculateSum(10, 20);
+            SiAuto.Main.LogMethodExit("CalculateSum");
+            SiAuto.Main.LogVariable("Result", result);
+
+            // 8. لاگ استثنا در try-catch
+            try
+            {
+                int x = 10 / int.Parse("0");
+            }
+            catch (Exception ex)
+            {
+                SiAuto.Main.LogException("Exception in division", ex);
+            }
+
+            // 9. لاگ چندنخی
+            Task[] tasks = new Task[2];
+            for (int t = 0; t < tasks.Length; t++)
+            {
+                int id = t;
+                tasks[t] = Task.Run(() =>
+                {
+                    SiAuto.Main.LogVariable("ThreadId", Thread.CurrentThread.ManagedThreadId);
+                    SiAuto.Main.LogMessage($"Task {id} started");
+                    Thread.Sleep(200);
+                    SiAuto.Main.LogMessage($"Task {id} completed");
+                });
+            }
+            Task.WaitAll(tasks);
+
+            // 10. بستن و خروج
+            SiAuto.Main.LogMessage("=== برنامه به پایان رسید ===");
+            SiAuto.Si.Flush();
+            SiAuto.Si.Close();
+
+            Console.WriteLine("لاگ‌ها در پوشه logs/simple.sil ذخیره شدند. با SmartInspect Console مشاهده کنید.");
+            Console.ReadKey();
         }
-        catch (Exception ex)
+
+        static int CalculateSum(int a, int b)
         {
-            SiAuto.Main.LogException(ex);
+            return a + b;
         }
-        Console.WriteLine("Check your logs.sil file using SmartInspect Console.");
