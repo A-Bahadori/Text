@@ -6,7 +6,7 @@ using Gurock.SmartInspect;
 
 namespace SmartInspectSample
 {
-    // کلاس مدیریت لاگر با استفاده از الگوی Singleton
+    // Logger management class using Singleton pattern
     public static class SILogger
     {
         private static readonly SmartInspect _si;
@@ -16,8 +16,8 @@ namespace SmartInspectSample
         {
             _si = new SmartInspect("SILogger");
             
-            // تنظیمات پیش‌فرض
-            _si.Connections = "file(filename=\"C:\\Logs\\AppLog.sil\", rotate=daily)";
+            // Default settings
+            _si.Connections = "file(filename=\"D:\\SmartInspectTest\\AppLog.sil\", rotate=daily)";
             _si.Level = Level.Debug;
             _si.Enabled = true;
             
@@ -55,6 +55,11 @@ namespace SmartInspectSample
             _session.LogMessage(message);
         }
         
+        public static void LogMessage(string message)
+        {
+            _session.LogMessage(message);
+        }
+        
         public static void LogWarning(string message)
         {
             _session.LogWarning(message);
@@ -77,23 +82,21 @@ namespace SmartInspectSample
             _session.LogDebug(message);
         }
         
-        public static void LogMessage(string message)
-        {
-            _session.LogMessage(message);
-        }
-        
         public static void LogInteger(string title, int value)
         {
+            // Using LogMessage instead of LogInteger which might not be available
             _session.LogMessage($"{title}: {value}");
         }
         
         public static void LogString(string title, string value)
         {
+            // Using LogMessage instead of LogString which might not be available
             _session.LogMessage($"{title}: {value}");
         }
         
         public static void LogValue(string title, object value)
         {
+            // Using LogMessage for values as LogValue might not be available
             _session.LogMessage($"{title}: {value?.ToString() ?? "(null)"}");
         }
         
@@ -104,12 +107,13 @@ namespace SmartInspectSample
         
         public static void LogText(string title, string value)
         {
+            // Use LogMessage instead of LogText which might not be available
             _session.LogMessage($"{title}: {value}");
         }
         
         public static void LogObject(string title, object value)
         {
-            // چون در نسخه قدیمی LogObject به صورت مستقیم وجود ندارد، می‌توانیم خصوصیات را به صورت دستی لاگ کنیم
+            // Since LogObject is not directly available in older versions, we can log properties manually
             _session.LogMessage($"--- {title} ---");
             
             if (value == null)
@@ -135,18 +139,18 @@ namespace SmartInspectSample
         public static void BeginTimedOperation(string operationName)
         {
             _session.EnterMethod(operationName);
-            _session.LogText("Start Time", DateTime.Now.ToString());
+            _session.LogMessage($"Start Time: {DateTime.Now}");
         }
         
         public static void EndTimedOperation(string operationName, DateTime startTime)
         {
             TimeSpan elapsed = DateTime.Now - startTime;
-            _session.LogText("Elapsed Time (ms)", elapsed.TotalMilliseconds.ToString());
+            _session.LogMessage($"Elapsed Time (ms): {elapsed.TotalMilliseconds}");
             _session.LeaveMethod(operationName);
         }
     }
     
-    // کلاس‌های نمونه برای استفاده در مثال‌ها
+    // Example classes for use in samples
     public class Customer
     {
         public int Id { get; set; }
@@ -176,7 +180,7 @@ namespace SmartInspectSample
         }
     }
     
-    // کلاس‌های سرویس دهنده برای مثال‌های کاربردی
+    // Service classes for practical examples
     public class DataService
     {
         public Customer GetCustomer(int id)
@@ -186,19 +190,19 @@ namespace SmartInspectSample
             {
                 SILogger.LogInfo($"Customer ID: {id}");
                 
-                // شبیه‌سازی دریافت مشتری از دیتابیس
+                // Simulate retrieving customer from database
                 if (id <= 0)
                 {
                     SILogger.LogWarning("Invalid customer ID provided");
                     return null;
                 }
                 
-                Thread.Sleep(100); // شبیه‌سازی تأخیر دسترسی به دیتابیس
+                Thread.Sleep(100); // Simulate database access delay
                 
                 var customer = new Customer
                 {
                     Id = id,
-                    Name = $"مشتری {id}",
+                    Name = $"Customer {id}",
                     Email = $"customer{id}@example.com",
                     Phone = $"09{id.ToString().PadLeft(9, '1')}"
                 };
@@ -233,12 +237,12 @@ namespace SmartInspectSample
                 var products = new List<Product>();
                 for (int i = 1; i <= count; i++)
                 {
-                    Thread.Sleep(50); // شبیه‌سازی تأخیر
+                    Thread.Sleep(50); // Simulate delay
                     
                     var product = new Product
                     {
                         Id = i,
-                        Name = $"محصول {i}",
+                        Name = $"Product {i}",
                         Price = i * 10000,
                         Quantity = 10
                     };
@@ -281,10 +285,10 @@ namespace SmartInspectSample
                 foreach (var product in order.Products)
                 {
                     SILogger.LogObject($"Product {product.Id}", product);
-                    Thread.Sleep(20); // شبیه‌سازی ذخیره محصول
+                    Thread.Sleep(20); // Simulate product saving
                 }
                 
-                // شبیه‌سازی ذخیره سفارش
+                // Simulate order saving
                 Thread.Sleep(200);
                 
                 SILogger.LogInfo("Order saved successfully");
@@ -326,12 +330,12 @@ namespace SmartInspectSample
                     return;
                 }
                 
-                // لاگ اطلاعات فایل
+                // Log file information
                 var fileInfo = new FileInfo(filePath);
                 SILogger.LogInfo($"File Size (bytes): {fileInfo.Length}");
                 SILogger.LogInfo($"Creation Time: {fileInfo.CreationTime}");
                 
-                // لاگ محتوای فایل (برای فایل‌های متنی)
+                // Log file content (for text files)
                 if (fileInfo.Extension.ToLower() == ".txt" || fileInfo.Extension.ToLower() == ".log")
                 {
                     // Using file reading approach instead of LogFile
@@ -345,7 +349,7 @@ namespace SmartInspectSample
                     }
                 }
                 
-                // شبیه‌سازی پردازش فایل
+                // Simulate file processing
                 SILogger.LogInfo("Processing file contents...");
                 Thread.Sleep(300);
                 
@@ -362,7 +366,7 @@ namespace SmartInspectSample
         }
     }
     
-    // کلاس اصلی برنامه که تمام مثال‌ها را دربرمی‌گیرد
+    // Main program class containing all examples
     class Program
     {
         private static readonly SmartInspect _si = new SmartInspect("MainApplication");
@@ -379,10 +383,10 @@ namespace SmartInspectSample
         {
             try
             {
-                // پیکربندی اولیه SmartInspect
+                // Initial SmartInspect configuration
                 InitializeSmartInspect();
                 
-                // نمونه‌های مختلف استفاده از SmartInspect
+                // Various examples of using SmartInspect
                 BasicLoggingExample();
                 ExceptionHandlingExample();
                 PerformanceMeasurementExample();
@@ -390,37 +394,37 @@ namespace SmartInspectSample
                 FileOperationsExample();
                 DatabaseOperationSimulationExample();
                 
-                Console.WriteLine("همه عملیات‌های لاگ‌گیری با موفقیت انجام شد.");
-                Console.WriteLine("لاگ‌ها در مسیر C:\\Logs\\AppLog.sil ذخیره شده‌اند.");
-                Console.WriteLine("برای مشاهده جزئیات، برنامه SmartInspect Console را باز کنید.");
+                Console.WriteLine("All logging operations completed successfully.");
+                Console.WriteLine("Logs are saved in D:\\SmartInspectTest\\AppLog.sil.");
+                Console.WriteLine("To view details, open the SmartInspect Console application.");
                 Console.ReadKey();
             }
             catch (Exception ex)
             {
-                _session.LogException("خطای کلی در برنامه", ex);
-                Console.WriteLine($"خطا: {ex.Message}");
+                _session.LogException("General application error", ex);
+                Console.WriteLine($"Error: {ex.Message}");
             }
             finally
             {
-                // بستن SmartInspect
+                // Close SmartInspect
                 _si.Enabled = false;
             }
         }
         
         private static void InitializeSmartInspect()
         {
-            // تنظیم اولیه SmartInspect
+            // Initial SmartInspect setup
             _si.Enabled = true;
             
-            // تنظیم مسیر فایل لاگ
-            _si.Connections = "file(filename=\"C:\\Logs\\AppLog.sil\", " +
+            // Set log file path
+            _si.Connections = "file(filename=\"D:\\SmartInspectTest\\AppLog.sil\", " +
                                "rotate=daily, maxsize=10mb, maxparts=5)";
             
-            // تنظیم سطح لاگ‌گیری
+            // Set logging level
             _si.Level = Level.Debug;
             
-            // ثبت شروع برنامه
-            _session.LogMessage("===== برنامه شروع شد =====");
+            // Record program start
+            _session.LogMessage("===== Program Started =====");
             _session.LogMessage("System Information: " + Environment.OSVersion.ToString());
         }
         
@@ -430,23 +434,23 @@ namespace SmartInspectSample
             
             try
             {
-                _session.LogMessage("مثال ۱: نمونه‌های اولیه لاگ‌گیری");
+                _session.LogMessage("Example 1: Basic Logging Examples");
                 
-                // لاگ‌های با سطوح مختلف
-                _session.LogVerbose("این یک پیام با جزئیات است");
-                _session.LogDebug("این یک پیام دیباگ است");
-                _session.LogMessage("این یک پیام معمولی است");
-                _session.LogWarning("این یک هشدار است");
-                _session.LogError("این یک خطا است (به عنوان مثال)");
+                // Logs with different levels
+                _session.LogVerbose("This is a verbose message");
+                _session.LogDebug("This is a debug message");
+                _session.LogMessage("This is a normal message");
+                _session.LogWarning("This is a warning");
+                _session.LogError("This is an error (example)");
                 
-                // ثبت انواع داده
-                _session.LogMessage($"عدد صحیح: {42}");
-                _session.LogMessage($"رشته متنی: {"متن نمونه"}");
-                _session.LogMessage($"مقدار منطقی: {true}");
-                _session.LogMessage($"تاریخ و زمان: {DateTime.Now}");
+                // Log different data types
+                _session.LogMessage($"Integer: {42}");
+                _session.LogMessage($"String: {"Sample text"}");
+                _session.LogMessage($"Boolean: {true}");
+                _session.LogMessage($"Date and Time: {DateTime.Now}");
                 
-                // تنظیم رنگ موقت
-                _session.LogMessage("این پیام آبی رنگ است");
+                // Color settings removed
+                _session.LogMessage("This would be a blue message");
             }
             finally
             {
@@ -460,32 +464,32 @@ namespace SmartInspectSample
             
             try
             {
-                _session.LogMessage("مثال ۲: مدیریت استثناها");
+                _session.LogMessage("Example 2: Exception Handling");
                 
                 try
                 {
-                    // ایجاد یک استثنا عمدی
-                    _session.LogMessage("تلاش برای تقسیم بر صفر...");
+                    // Create an intentional exception
+                    _session.LogMessage("Attempting to divide by zero...");
                     int divisor = 0; // Set to zero at runtime to force exception
-                    int result = 10 / divisor; // ایجاد استثنا
+                    int result = 10 / divisor; // Create exception
                 }
                 catch (DivideByZeroException ex)
                 {
-                    // ثبت استثنا
-                    _session.LogException("خطای تقسیم بر صفر", ex);
+                    // Log exception
+                    _session.LogException("Division by zero error", ex);
                 }
                 
                 try
                 {
-                    // استثنای دیگر
-                    _session.LogMessage("تلاش برای دسترسی به یک آرایه خارج از محدوده...");
+                    // Another exception
+                    _session.LogMessage("Attempting to access array out of bounds...");
                     int[] numbers = new int[3];
-                    int value = numbers[10]; // ایجاد استثنا
+                    int value = numbers[10]; // Create exception
                 }
                 catch (IndexOutOfRangeException ex)
                 {
-                    // ثبت استثنا
-                    _session.LogException("خطای دسترسی به آرایه", ex);
+                    // Log exception
+                    _session.LogException("Array access error", ex);
                 }
             }
             finally
@@ -501,19 +505,19 @@ namespace SmartInspectSample
             
             try
             {
-                _session.LogMessage("مثال ۳: اندازه‌گیری زمان اجرا");
+                _session.LogMessage("Example 3: Runtime Measurement");
                 
-                // اندازه‌گیری زمان یک عملیات ساده
+                // Measure time of a simple operation
                 DateTime operationStart = DateTime.Now;
                 
-                _session.LogMessage("شروع عملیات زمان‌بر...");
-                Thread.Sleep(1500); // شبیه‌سازی یک عملیات زمان‌بر 
-                _session.LogMessage("پایان عملیات زمان‌بر");
+                _session.LogMessage("Starting time-consuming operation...");
+                Thread.Sleep(1500); // Simulate a time-consuming operation
+                _session.LogMessage("Time-consuming operation complete");
                 
                 TimeSpan operationTime = DateTime.Now - operationStart;
-                _session.LogMessage($"زمان اجرای عملیات (میلی‌ثانیه): {operationTime.TotalMilliseconds}");
+                _session.LogMessage($"Operation execution time (milliseconds): {operationTime.TotalMilliseconds}");
                 
-                // اندازه‌گیری زمان یک حلقه
+                // Measure loop time
                 operationStart = DateTime.Now;
                 
                 int sum = 0;
@@ -523,13 +527,13 @@ namespace SmartInspectSample
                 }
                 
                 operationTime = DateTime.Now - operationStart;
-                _session.LogMessage($"مجموع محاسبه شده: {sum}");
-                _session.LogMessage($"زمان محاسبه (میلی‌ثانیه): {operationTime.TotalMilliseconds}");
+                _session.LogMessage($"Calculated sum: {sum}");
+                _session.LogMessage($"Calculation time (milliseconds): {operationTime.TotalMilliseconds}");
             }
             finally
             {
                 TimeSpan totalTime = DateTime.Now - startTime;
-                _session.LogMessage($"زمان کل (میلی‌ثانیه): {totalTime.TotalMilliseconds}");
+                _session.LogMessage($"Total time (milliseconds): {totalTime.TotalMilliseconds}");
                 _session.LeaveMethod("PerformanceMeasurementExample");
             }
         }
@@ -540,53 +544,53 @@ namespace SmartInspectSample
             
             try
             {
-                _session.LogMessage("مثال ۴: ثبت ساختارهای داده");
+                _session.LogMessage("Example 4: Logging Data Structures");
                 
-                // ثبت آرایه
+                // Log array
                 int[] numbers = { 1, 2, 3, 4, 5 };
-                _session.LogMessage("آرایه اعداد:");
+                _session.LogMessage("Numbers array:");
                 for (int i = 0; i < numbers.Length; i++)
                 {
                     _session.LogMessage($"numbers[{i}]: {numbers[i]}");
                 }
                 
-                // ثبت لیست
-                List<string> names = new List<string> { "علی", "محمد", "رضا", "حسین" };
-                _session.LogMessage("لیست نام‌ها:");
+                // Log list
+                List<string> names = new List<string> { "Alex", "Michael", "Robert", "John" };
+                _session.LogMessage("Names list:");
                 for (int i = 0; i < names.Count; i++)
                 {
                     _session.LogMessage($"names[{i}]: {names[i]}");
                 }
                 
-                // ثبت دیکشنری
+                // Log dictionary
                 Dictionary<string, int> scores = new Dictionary<string, int>
                 {
-                    { "علی", 85 },
-                    { "محمد", 92 },
-                    { "رضا", 78 },
-                    { "حسین", 90 }
+                    { "Alex", 85 },
+                    { "Michael", 92 },
+                    { "Robert", 78 },
+                    { "John", 90 }
                 };
                 
-                _session.LogMessage("امتیازات:");
+                _session.LogMessage("Scores:");
                 foreach (var entry in scores)
                 {
-                    _session.LogMessage($"امتیاز {entry.Key}: {entry.Value}");
+                    _session.LogMessage($"Score {entry.Key}: {entry.Value}");
                 }
                 
-                // ثبت کلاس
+                // Log class
                 var customer = new Customer
                 {
                     Id = 1,
-                    Name = "محمد احمدی",
-                    Email = "mohammad@example.com",
+                    Name = "Michael Smith",
+                    Email = "michael@example.com",
                     Phone = "09123456789"
                 };
                 
-                _session.LogMessage("اطلاعات مشتری:");
-                _session.LogMessage($"شناسه: {customer.Id}");
-                _session.LogMessage($"نام: {customer.Name}");
-                _session.LogMessage($"ایمیل: {customer.Email}");
-                _session.LogMessage($"تلفن: {customer.Phone}");
+                _session.LogMessage("Customer Information:");
+                _session.LogMessage($"ID: {customer.Id}");
+                _session.LogMessage($"Name: {customer.Name}");
+                _session.LogMessage($"Email: {customer.Email}");
+                _session.LogMessage($"Phone: {customer.Phone}");
             }
             finally
             {
@@ -600,30 +604,30 @@ namespace SmartInspectSample
             
             try
             {
-                _session.LogMessage("مثال ۵: عملیات فایل");
+                _session.LogMessage("Example 5: File Operations");
                 
-                // ایجاد یک فایل متنی موقت برای تست
+                // Create a temporary text file for testing
                 string tempFilePath = Path.Combine(Path.GetTempPath(), "smartinspect_test.txt");
                 
                 try
                 {
-                    // نوشتن در فایل
-                    _session.LogMessage($"مسیر فایل: {tempFilePath}");
-                    _session.LogMessage("در حال ایجاد فایل...");
+                    // Write to file
+                    _session.LogMessage($"File path: {tempFilePath}");
+                    _session.LogMessage("Creating file...");
                     
-                    File.WriteAllText(tempFilePath, "این یک فایل تست برای SmartInspect است.\r\n" +
-                                                  "خط دوم فایل تست.\r\n" +
-                                                  "خط سوم فایل تست.");
+                    File.WriteAllText(tempFilePath, "This is a test file for SmartInspect.\r\n" +
+                                                  "Second line of the test file.\r\n" +
+                                                  "Third line of the test file.");
                     
-                    _session.LogMessage("فایل با موفقیت ایجاد شد");
+                    _session.LogMessage("File created successfully");
                     
-                    // نمایش اطلاعات فایل
+                    // Display file information
                     FileInfo fileInfo = new FileInfo(tempFilePath);
-                    _session.LogMessage($"اندازه فایل (بایت): {fileInfo.Length}");
-                    _session.LogMessage($"زمان ایجاد: {fileInfo.CreationTime}");
+                    _session.LogMessage($"File size (bytes): {fileInfo.Length}");
+                    _session.LogMessage($"Creation time: {fileInfo.CreationTime}");
                     
-                    // لاگ کردن محتوای فایل
-                    _session.LogMessage($"محتوای فایل: {tempFilePath}");
+                    // Log file content
+                    _session.LogMessage($"File content: {tempFilePath}");
                     try {
                         string content = File.ReadAllText(tempFilePath);
                         _session.LogMessage(content);
@@ -632,31 +636,31 @@ namespace SmartInspectSample
                         _session.LogMessage($"Error reading file: {ex.Message}");
                     }
                     
-                    // خواندن و ثبت محتوای فایل به صورت دستی
+                    // Read and log file content manually
                     string[] lines = File.ReadAllLines(tempFilePath);
-                    _session.LogMessage($"تعداد خطوط: {lines.Length}");
+                    _session.LogMessage($"Number of lines: {lines.Length}");
                     
                     for (int i = 0; i < lines.Length; i++)
                     {
-                        _session.LogMessage($"خط {i+1}: {lines[i]}");
+                        _session.LogMessage($"Line {i+1}: {lines[i]}");
                     }
                     
-                    // پردازش فایل با استفاده از کلاس FileProcessor
+                    // Process file using FileProcessor class
                     _fileProcessor.ProcessFile(tempFilePath);
                 }
                 finally
                 {
-                    // پاک کردن فایل موقت
+                    // Delete temporary file
                     if (File.Exists(tempFilePath))
                     {
                         File.Delete(tempFilePath);
-                        _session.LogMessage("فایل موقت حذف شد");
+                        _session.LogMessage("Temporary file deleted");
                     }
                 }
             }
             catch (Exception ex)
             {
-                _session.LogException("خطا در عملیات فایل", ex);
+                _session.LogException("Error in file operations", ex);
             }
             finally
             {
@@ -670,29 +674,29 @@ namespace SmartInspectSample
             
             try
             {
-                _session.LogMessage("مثال ۶: شبیه‌سازی عملیات دیتابیس");
+                _session.LogMessage("Example 6: Database Operation Simulation");
                 
-                // شبیه‌سازی یک عملیات دیتابیس کامل
+                // Simulate a complete database operation
                 
-                // 1. دریافت مشتری
+                // 1. Get customer
                 Customer customer = _dataService.GetCustomer(123);
                 
                 if (customer == null)
                 {
-                    _session.LogError("مشتری یافت نشد");
+                    _session.LogError("Customer not found");
                     return;
                 }
                 
-                // 2. دریافت محصولات
+                // 2. Get products
                 List<Product> products = _dataService.GetProducts(3);
                 
                 if (products.Count == 0)
                 {
-                    _session.LogError("محصولی یافت نشد");
+                    _session.LogError("No products found");
                     return;
                 }
                 
-                // 3. ایجاد سفارش
+                // 3. Create order
                 var order = new Order
                 {
                     Id = 1001,
@@ -701,36 +705,36 @@ namespace SmartInspectSample
                     OrderDate = DateTime.Now
                 };
                 
-                // 4. محاسبه و لاگ کردن مجموع سفارش
+                // 4. Calculate and log order total
                 decimal total = 0;
-                _session.LogMessage("محاسبه مجموع سفارش:");
+                _session.LogMessage("Calculating order total:");
                 
                 foreach (var product in order.Products)
                 {
                     decimal itemTotal = product.Price * product.Quantity;
-                    _session.LogMessage($"محصول {product.Id}: {product.Name} - {itemTotal}");
+                    _session.LogMessage($"Product {product.Id}: {product.Name} - {itemTotal}");
                     total += itemTotal;
                 }
                 
-                _session.LogMessage($"مجموع نهایی: {total}");
+                _session.LogMessage($"Final total: {total}");
                 
-                // 5. ذخیره سفارش
+                // 5. Save order
                 bool saveResult = _dataService.SaveOrder(order);
                 
-                _session.LogMessage($"نتیجه ذخیره سفارش: {saveResult}");
+                _session.LogMessage($"Order save result: {saveResult}");
                 
                 if (saveResult)
                 {
-                    _session.LogMessage("سفارش با موفقیت ثبت شد");
+                    _session.LogMessage("Order saved successfully");
                 }
                 else
                 {
-                    _session.LogError("خطا در ثبت سفارش");
+                    _session.LogError("Error saving order");
                 }
             }
             catch (Exception ex)
             {
-                _session.LogException("خطا در شبیه‌سازی عملیات دیتابیس", ex);
+                _session.LogException("Error in database operation simulation", ex);
             }
             finally
             {
