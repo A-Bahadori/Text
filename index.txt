@@ -369,15 +369,8 @@ namespace SmartInspectSample
     // Main program class containing all examples
     class Program
     {
-        private static readonly SmartInspect _si = new SmartInspect("MainApplication");
-        private static readonly Session _session;
         private static readonly DataService _dataService = new DataService();
         private static readonly FileProcessor _fileProcessor = new FileProcessor();
-        
-        static Program()
-        {
-            _session = _si.AddSession("Main");
-        }
         
         static void Main(string[] args)
         {
@@ -401,121 +394,111 @@ namespace SmartInspectSample
             }
             catch (Exception ex)
             {
-                _session.LogException("General application error", ex);
+                SILogger.LogError("General application error", ex);
                 Console.WriteLine($"Error: {ex.Message}");
             }
             finally
             {
                 // Close SmartInspect
-                _si.Enabled = false;
+                SILogger.SetEnabled(false);
             }
         }
         
         private static void InitializeSmartInspect()
         {
-            // Initial SmartInspect setup
-            _si.Enabled = true;
-            
-            // Set log file path
-            _si.Connections = "file(filename=\"D:\\SmartInspectTest\\AppLog.sil\", " +
-                               "rotate=daily, maxsize=10mb, maxparts=5)";
-            
-            // Set logging level
-            _si.Level = Level.Debug;
+            // Initial SmartInspect setup - already configured in SILogger
+            SILogger.Configure("file(filename=\"D:\\SmartInspectTest\\AppLog.sil\", " +
+                             "rotate=daily, maxsize=10mb, maxparts=5)", Level.Debug);
             
             // Record program start
-            _session.LogMessage("===== Program Started =====");
-            _session.LogMessage("System Information: " + Environment.OSVersion.ToString());
+            SILogger.LogInfo("===== Program Started =====");
+            SILogger.LogInfo("System Information: " + Environment.OSVersion.ToString());
         }
         
         private static void BasicLoggingExample()
         {
-            _session.EnterMethod("BasicLoggingExample");
+            SILogger.LogMethodEntry("BasicLoggingExample");
             
             try
             {
-                _session.LogMessage("Example 1: Basic Logging Examples");
+                SILogger.LogInfo("Example 1: Basic Logging Examples");
                 
                 // Logs with different levels
-                _session.LogVerbose("This is a verbose message");
-                _session.LogDebug("This is a debug message");
-                _session.LogMessage("This is a normal message");
-                _session.LogWarning("This is a warning");
-                _session.LogError("This is an error (example)");
+                SILogger.LogDebug("This is a debug message");
+                SILogger.LogInfo("This is a normal message");
+                SILogger.LogWarning("This is a warning");
+                SILogger.LogError("This is an error (example)");
                 
                 // Log different data types
-                _session.LogMessage($"Integer: {42}");
-                _session.LogMessage($"String: {"Sample text"}");
-                _session.LogMessage($"Boolean: {true}");
-                _session.LogMessage($"Date and Time: {DateTime.Now}");
-                
-                // Color settings removed
-                _session.LogMessage("This would be a blue message");
+                SILogger.LogInfo($"Integer: {42}");
+                SILogger.LogInfo($"String: {"Sample text"}");
+                SILogger.LogInfo($"Boolean: {true}");
+                SILogger.LogInfo($"Date and Time: {DateTime.Now}");
             }
             finally
             {
-                _session.LeaveMethod("BasicLoggingExample");
+                SILogger.LogMethodExit("BasicLoggingExample");
             }
         }
         
         private static void ExceptionHandlingExample()
         {
-            _session.EnterMethod("ExceptionHandlingExample");
+            SILogger.LogMethodEntry("ExceptionHandlingExample");
             
             try
             {
-                _session.LogMessage("Example 2: Exception Handling");
+                SILogger.LogInfo("Example 2: Exception Handling");
                 
                 try
                 {
                     // Create an intentional exception
-                    _session.LogMessage("Attempting to divide by zero...");
+                    SILogger.LogInfo("Attempting to divide by zero...");
                     int divisor = 0; // Set to zero at runtime to force exception
                     int result = 10 / divisor; // Create exception
                 }
                 catch (DivideByZeroException ex)
                 {
                     // Log exception
-                    _session.LogException("Division by zero error", ex);
+                    SILogger.LogError("Division by zero error", ex);
                 }
                 
                 try
                 {
                     // Another exception
-                    _session.LogMessage("Attempting to access array out of bounds...");
+                    SILogger.LogInfo("Attempting to access array out of bounds...");
                     int[] numbers = new int[3];
                     int value = numbers[10]; // Create exception
                 }
                 catch (IndexOutOfRangeException ex)
                 {
                     // Log exception
-                    _session.LogException("Array access error", ex);
+                    SILogger.LogError("Array access error", ex);
                 }
             }
             finally
             {
-                _session.LeaveMethod("ExceptionHandlingExample");
+                SILogger.LogMethodExit("ExceptionHandlingExample");
             }
         }
         
         private static void PerformanceMeasurementExample()
         {
-            _session.EnterMethod("PerformanceMeasurementExample");
+            SILogger.LogMethodEntry("PerformanceMeasurementExample");
             DateTime startTime = DateTime.Now;
             
             try
             {
-                _session.LogMessage("Example 3: Runtime Measurement");
+                SILogger.LogInfo("Example 3: Runtime Measurement");
                 
                 // Measure time of a simple operation
                 DateTime operationStart = DateTime.Now;
                 
-                _session.LogMessage("Starting time-consuming operation...");
+                SILogger.LogInfo("Starting time-consuming operation...");
                 Thread.Sleep(1500); // Simulate a time-consuming operation
-                _session.LogMessage("Time-consuming operation complete");
+                SILogger.LogInfo("Time-consuming operation complete");
                 
                 TimeSpan operationTime = DateTime.Now - operationStart;
-                _session.LogMessage($"Operation execution time (milliseconds): {operationTime.TotalMilliseconds}");
+                SILogger.LogInfo($"Operation execution time (milliseconds): {operationTime.TotalMilliseconds}");
                 
                 // Measure loop time
                 operationStart = DateTime.Now;
@@ -527,39 +510,39 @@ namespace SmartInspectSample
                 }
                 
                 operationTime = DateTime.Now - operationStart;
-                _session.LogMessage($"Calculated sum: {sum}");
-                _session.LogMessage($"Calculation time (milliseconds): {operationTime.TotalMilliseconds}");
+                SILogger.LogInfo($"Calculated sum: {sum}");
+                SILogger.LogInfo($"Calculation time (milliseconds): {operationTime.TotalMilliseconds}");
             }
             finally
             {
                 TimeSpan totalTime = DateTime.Now - startTime;
-                _session.LogMessage($"Total time (milliseconds): {totalTime.TotalMilliseconds}");
-                _session.LeaveMethod("PerformanceMeasurementExample");
+                SILogger.LogInfo($"Total time (milliseconds): {totalTime.TotalMilliseconds}");
+                SILogger.LogMethodExit("PerformanceMeasurementExample");
             }
         }
         
         private static void DataStructuresExample()
         {
-            _session.EnterMethod("DataStructuresExample");
+            SILogger.LogMethodEntry("DataStructuresExample");
             
             try
             {
-                _session.LogMessage("Example 4: Logging Data Structures");
+                SILogger.LogInfo("Example 4: Logging Data Structures");
                 
                 // Log array
                 int[] numbers = { 1, 2, 3, 4, 5 };
-                _session.LogMessage("Numbers array:");
+                SILogger.LogInfo("Numbers array:");
                 for (int i = 0; i < numbers.Length; i++)
                 {
-                    _session.LogMessage($"numbers[{i}]: {numbers[i]}");
+                    SILogger.LogInfo($"numbers[{i}]: {numbers[i]}");
                 }
                 
                 // Log list
                 List<string> names = new List<string> { "Alex", "Michael", "Robert", "John" };
-                _session.LogMessage("Names list:");
+                SILogger.LogInfo("Names list:");
                 for (int i = 0; i < names.Count; i++)
                 {
-                    _session.LogMessage($"names[{i}]: {names[i]}");
+                    SILogger.LogInfo($"names[{i}]: {names[i]}");
                 }
                 
                 // Log dictionary
@@ -571,10 +554,10 @@ namespace SmartInspectSample
                     { "John", 90 }
                 };
                 
-                _session.LogMessage("Scores:");
+                SILogger.LogInfo("Scores:");
                 foreach (var entry in scores)
                 {
-                    _session.LogMessage($"Score {entry.Key}: {entry.Value}");
+                    SILogger.LogInfo($"Score {entry.Key}: {entry.Value}");
                 }
                 
                 // Log class
@@ -586,25 +569,25 @@ namespace SmartInspectSample
                     Phone = "09123456789"
                 };
                 
-                _session.LogMessage("Customer Information:");
-                _session.LogMessage($"ID: {customer.Id}");
-                _session.LogMessage($"Name: {customer.Name}");
-                _session.LogMessage($"Email: {customer.Email}");
-                _session.LogMessage($"Phone: {customer.Phone}");
+                SILogger.LogInfo("Customer Information:");
+                SILogger.LogInfo($"ID: {customer.Id}");
+                SILogger.LogInfo($"Name: {customer.Name}");
+                SILogger.LogInfo($"Email: {customer.Email}");
+                SILogger.LogInfo($"Phone: {customer.Phone}");
             }
             finally
             {
-                _session.LeaveMethod("DataStructuresExample");
+                SILogger.LogMethodExit("DataStructuresExample");
             }
         }
         
         private static void FileOperationsExample()
         {
-            _session.EnterMethod("FileOperationsExample");
+            SILogger.LogMethodEntry("FileOperationsExample");
             
             try
             {
-                _session.LogMessage("Example 5: File Operations");
+                SILogger.LogInfo("Example 5: File Operations");
                 
                 // Create a temporary text file for testing
                 string tempFilePath = Path.Combine(Path.GetTempPath(), "smartinspect_test.txt");
@@ -612,37 +595,37 @@ namespace SmartInspectSample
                 try
                 {
                     // Write to file
-                    _session.LogMessage($"File path: {tempFilePath}");
-                    _session.LogMessage("Creating file...");
+                    SILogger.LogInfo($"File path: {tempFilePath}");
+                    SILogger.LogInfo("Creating file...");
                     
                     File.WriteAllText(tempFilePath, "This is a test file for SmartInspect.\r\n" +
                                                   "Second line of the test file.\r\n" +
                                                   "Third line of the test file.");
                     
-                    _session.LogMessage("File created successfully");
+                    SILogger.LogInfo("File created successfully");
                     
                     // Display file information
                     FileInfo fileInfo = new FileInfo(tempFilePath);
-                    _session.LogMessage($"File size (bytes): {fileInfo.Length}");
-                    _session.LogMessage($"Creation time: {fileInfo.CreationTime}");
+                    SILogger.LogInfo($"File size (bytes): {fileInfo.Length}");
+                    SILogger.LogInfo($"Creation time: {fileInfo.CreationTime}");
                     
                     // Log file content
-                    _session.LogMessage($"File content: {tempFilePath}");
+                    SILogger.LogInfo($"File content: {tempFilePath}");
                     try {
                         string content = File.ReadAllText(tempFilePath);
-                        _session.LogMessage(content);
+                        SILogger.LogInfo(content);
                     }
                     catch (Exception ex) {
-                        _session.LogMessage($"Error reading file: {ex.Message}");
+                        SILogger.LogError($"Error reading file: {ex.Message}");
                     }
                     
                     // Read and log file content manually
                     string[] lines = File.ReadAllLines(tempFilePath);
-                    _session.LogMessage($"Number of lines: {lines.Length}");
+                    SILogger.LogInfo($"Number of lines: {lines.Length}");
                     
                     for (int i = 0; i < lines.Length; i++)
                     {
-                        _session.LogMessage($"Line {i+1}: {lines[i]}");
+                        SILogger.LogInfo($"Line {i+1}: {lines[i]}");
                     }
                     
                     // Process file using FileProcessor class
@@ -654,27 +637,27 @@ namespace SmartInspectSample
                     if (File.Exists(tempFilePath))
                     {
                         File.Delete(tempFilePath);
-                        _session.LogMessage("Temporary file deleted");
+                        SILogger.LogInfo("Temporary file deleted");
                     }
                 }
             }
             catch (Exception ex)
             {
-                _session.LogException("Error in file operations", ex);
+                SILogger.LogError("Error in file operations", ex);
             }
             finally
             {
-                _session.LeaveMethod("FileOperationsExample");
+                SILogger.LogMethodExit("FileOperationsExample");
             }
         }
         
         private static void DatabaseOperationSimulationExample()
         {
-            _session.EnterMethod("DatabaseOperationSimulationExample");
+            SILogger.LogMethodEntry("DatabaseOperationSimulationExample");
             
             try
             {
-                _session.LogMessage("Example 6: Database Operation Simulation");
+                SILogger.LogInfo("Example 6: Database Operation Simulation");
                 
                 // Simulate a complete database operation
                 
@@ -683,7 +666,7 @@ namespace SmartInspectSample
                 
                 if (customer == null)
                 {
-                    _session.LogError("Customer not found");
+                    SILogger.LogError("Customer not found");
                     return;
                 }
                 
@@ -692,7 +675,7 @@ namespace SmartInspectSample
                 
                 if (products.Count == 0)
                 {
-                    _session.LogError("No products found");
+                    SILogger.LogError("No products found");
                     return;
                 }
                 
@@ -707,38 +690,38 @@ namespace SmartInspectSample
                 
                 // 4. Calculate and log order total
                 decimal total = 0;
-                _session.LogMessage("Calculating order total:");
+                SILogger.LogInfo("Calculating order total:");
                 
                 foreach (var product in order.Products)
                 {
                     decimal itemTotal = product.Price * product.Quantity;
-                    _session.LogMessage($"Product {product.Id}: {product.Name} - {itemTotal}");
+                    SILogger.LogInfo($"Product {product.Id}: {product.Name} - {itemTotal}");
                     total += itemTotal;
                 }
                 
-                _session.LogMessage($"Final total: {total}");
+                SILogger.LogInfo($"Final total: {total}");
                 
                 // 5. Save order
                 bool saveResult = _dataService.SaveOrder(order);
                 
-                _session.LogMessage($"Order save result: {saveResult}");
+                SILogger.LogInfo($"Order save result: {saveResult}");
                 
                 if (saveResult)
                 {
-                    _session.LogMessage("Order saved successfully");
+                    SILogger.LogInfo("Order saved successfully");
                 }
                 else
                 {
-                    _session.LogError("Error saving order");
+                    SILogger.LogError("Error saving order");
                 }
             }
             catch (Exception ex)
             {
-                _session.LogException("Error in database operation simulation", ex);
+                SILogger.LogError("Error in database operation simulation", ex);
             }
             finally
             {
-                _session.LeaveMethod("DatabaseOperationSimulationExample");
+                SILogger.LogMethodExit("DatabaseOperationSimulationExample");
             }
         }
     }
