@@ -1,80 +1,19 @@
-// ConsoleAppSmartInspect.csproj
-<Project Sdk="Microsoft.NET.Sdk">
-
-  <PropertyGroup>
-    <OutputType>Exe</OutputType>
-    <TargetFramework>net7.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-  </PropertyGroup>
-
-  <ItemGroup>
-    <!-- Install SmartInspect via NuGet -->
-    <PackageReference Include="SmartInspect" Version="4.3.0" />
-  </ItemGroup>
-
-</Project>
-
-
-// Program.cs
-using System;
-using SiAuto;
-
-namespace ConsoleAppSmartInspect
-{
-    class Program
-    {
-        static void Main(string[] args)
+ // Logging Examples
+        SiAuto.Main.LogMessage("Application started");
+        SiAuto.Main.LogDebug("This is a debug message");
+        SiAuto.Main.LogWarning("This is a warning");
+        SiAuto.Main.LogError("This is an error");
+        SiAuto.Main.LogFatal("Something fatal happened");
+        // Log custom object
+        var user = new { Id = 1, Name = "John", Email = "john@example.com" };
+        SiAuto.Main.LogObject("User Info", user);
+        // Example try-catch
+        try
         {
-            // 1. پیکربندی SmartInspect برای لاگ‌برداری در فایل
-            SiAuto.Si.Connections = "file(filename=app.sil)";
-            SiAuto.Si.Enabled = true;
-
-            // 2. مثال انواع مختلف لاگ‌ها
-            // لاگ اطلاعاتی (Info)
-            SiAuto.Main.LogMessage("اطلاعات: برنامه شروع شد.");
-
-            // لاگ هشدار (Warning)
-            SiAuto.Main.LogWarning("هشدار: مقدار ورودی نزدیک به حد مجاز است.");
-
-            // لاگ خطا (Error)
-            SiAuto.Main.LogError("خطا: تلاش برای اتصال به دیتابیس ناموفق بود.");
-
-            // لاگ متغیر (Variable)
-            int retryCount = 3;
-            SiAuto.Main.LogVariable("RetryCount", retryCount);
-
-            // لاگ استثنا (Exception)
-            try
-            {
-                throw new InvalidOperationException("عملیات نامعتبر");
-            }
-            catch (Exception ex)
-            {
-                SiAuto.Main.LogException("خطا در اجرای عملیات", ex);
-            }
-
-            // لاگ ورود و خروج متد (Method Entry/Exit)
-            SiAuto.Main.LogMethodEntry("SampleMethod");
-            SampleMethod();
-            SiAuto.Main.LogMethodExit("SampleMethod");
-
-            // لاگ در کانال دلخواه (Custom Channel)
-            SiAuto.Main.LogChannel = "Security";
-            SiAuto.Main.LogMessage("Security: کاربر با موفقیت احراز هویت شد.");
-
-            // 3. اطمینان از نوشتن و بستن فایل لاگ
-            SiAuto.Si.Flush();
-            SiAuto.Si.Close();
-
-            Console.WriteLine("لاگ‌ها در فایل app.sil ذخیره شدند. برای خروج کلیدی را فشار دهید.");
-            Console.ReadKey();
+            var x = 5 / int.Parse("0");
         }
-
-        static void SampleMethod()
+        catch (Exception ex)
         {
-            // نمونه پردازش درون متد
-            SiAuto.Main.LogMessage("درون SampleMethod");
+            SiAuto.Main.LogException(ex);
         }
-    }
-}
+        Console.WriteLine("Check your logs.sil file using SmartInspect Console.");
