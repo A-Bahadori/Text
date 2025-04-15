@@ -11,22 +11,40 @@ namespace SmartInspectSample
     {
         private static readonly SmartInspect _si;
         private static readonly Session _session;
+        private static bool _isInitialized = false;
         
         static SILogger()
         {
             _si = new SmartInspect("SILogger");
-            
-            // Default settings
-            _si.Connections = "file(filename=\"D:\\SmartInspectTest\\AppLog.sil\", rotate=daily)";
-            _si.Level = Level.Debug;
-            _si.Enabled = true;
-            
             _session = _si.AddSession("Main");
+            
+            // No default path initialization here - will be done by Configure method
+            _si.Level = Level.Debug;
+            _si.Enabled = false; // Start disabled until explicitly initialized
         }
         
         public static Session MainSession
         {
             get { return _session; }
+        }
+        
+        /// <summary>
+        /// Initialize SmartInspect with the specified path and settings
+        /// </summary>
+        public static void Initialize(string logFilePath = "D:\\SmartInspectTest\\AppLog.sil", Level level = Level.Debug)
+        {
+            if (_isInitialized)
+            {
+                _session.LogWarning("SmartInspect already initialized. Call SetEnabled(false) first to reinitialize.");
+                return;
+            }
+            
+            string connections = $"file(filename=\"{logFilePath}\", rotate=daily, maxsize=10mb, maxparts=5)";
+            Configure(connections, level);
+            SetEnabled(true);
+            
+            _isInitialized = true;
+            _session.LogMessage("SmartInspect initialized successfully");
         }
         
         public static void Configure(string connections, Level level = Level.Debug)
@@ -38,6 +56,7 @@ namespace SmartInspectSample
         public static void SetEnabled(bool enabled)
         {
             _si.Enabled = enabled;
+            _isInitialized = enabled;
         }
         
         public static void LogMethodEntry(string methodName)
@@ -406,9 +425,8 @@ namespace SmartInspectSample
         
         private static void InitializeSmartInspect()
         {
-            // Initial SmartInspect setup - already configured in SILogger
-            SILogger.Configure("file(filename=\"D:\\SmartInspectTest\\AppLog.sil\", " +
-                             "rotate=daily, maxsize=10mb, maxparts=5)", Level.Debug);
+            // Use the new Initialize method instead of Configure
+            SILogger.Initialize("D:\\SmartInspectTest\\AppLog.sil", Level.Debug);
             
             // Record program start
             SILogger.LogInfo("===== Program Started =====");
