@@ -77,6 +77,11 @@ namespace SmartInspectSample
             _session.LogDebug(message);
         }
         
+        public static void LogMessage(string message)
+        {
+            _session.LogMessage(message);
+        }
+        
         public static void LogInteger(string title, int value)
         {
             _session.LogMessage($"{title}: {value}");
@@ -179,7 +184,7 @@ namespace SmartInspectSample
             SILogger.LogMethodEntry("GetCustomer");
             try 
             {
-                SILogger.LogMessage($"Customer ID: {id}");
+                SILogger.LogInfo($"Customer ID: {id}");
                 
                 // شبیه‌سازی دریافت مشتری از دیتابیس
                 if (id <= 0)
@@ -217,7 +222,7 @@ namespace SmartInspectSample
             SILogger.LogMethodEntry("GetProducts");
             try
             {
-                SILogger.LogMessage($"Requested Count: {count}");
+                SILogger.LogInfo($"Requested Count: {count}");
                 
                 if (count <= 0)
                 {
@@ -239,10 +244,10 @@ namespace SmartInspectSample
                     };
                     
                     products.Add(product);
-                    SILogger.LogMessage($"Added Product: {product.Name}");
+                    SILogger.LogInfo($"Added Product: {product.Name}");
                 }
                 
-                SILogger.LogMessage($"Products Retrieved: {products.Count}");
+                SILogger.LogInfo($"Products Retrieved: {products.Count}");
                 return products;
             }
             catch (Exception ex)
@@ -293,7 +298,7 @@ namespace SmartInspectSample
             finally
             {
                 TimeSpan elapsed = DateTime.Now - startTime;
-                SILogger.LogMessage($"Save Operation Duration (ms): {elapsed.TotalMilliseconds}");
+                SILogger.LogInfo($"Save Operation Duration (ms): {elapsed.TotalMilliseconds}");
                 SILogger.LogMethodExit("SaveOrder");
             }
         }
@@ -307,7 +312,7 @@ namespace SmartInspectSample
             
             try
             {
-                SILogger.LogMessage($"File Path: {filePath}");
+                SILogger.LogInfo($"File Path: {filePath}");
                 
                 if (string.IsNullOrEmpty(filePath))
                 {
@@ -323,13 +328,21 @@ namespace SmartInspectSample
                 
                 // لاگ اطلاعات فایل
                 var fileInfo = new FileInfo(filePath);
-                SILogger.LogMessage($"File Size (bytes): {fileInfo.Length}");
-                SILogger.LogMessage($"Creation Time: {fileInfo.CreationTime}");
+                SILogger.LogInfo($"File Size (bytes): {fileInfo.Length}");
+                SILogger.LogInfo($"Creation Time: {fileInfo.CreationTime}");
                 
                 // لاگ محتوای فایل (برای فایل‌های متنی)
                 if (fileInfo.Extension.ToLower() == ".txt" || fileInfo.Extension.ToLower() == ".log")
                 {
-                    SILogger.MainSession.LogFile("File Content", filePath);
+                    // Using file reading approach instead of LogFile
+                    SILogger.LogInfo($"File Content: {filePath}");
+                    try {
+                        string content = File.ReadAllText(filePath);
+                        SILogger.LogInfo(content);
+                    }
+                    catch (Exception ex) {
+                        SILogger.LogError($"Error reading file: {ex.Message}");
+                    }
                 }
                 
                 // شبیه‌سازی پردازش فایل
@@ -408,7 +421,7 @@ namespace SmartInspectSample
             
             // ثبت شروع برنامه
             _session.LogMessage("===== برنامه شروع شد =====");
-            _session.LogSystem("اطلاعات سیستم");
+            _session.LogMessage("System Information: " + Environment.OSVersion.ToString());
         }
         
         private static void BasicLoggingExample()
@@ -433,9 +446,7 @@ namespace SmartInspectSample
                 _session.LogMessage($"تاریخ و زمان: {DateTime.Now}");
                 
                 // تنظیم رنگ موقت
-                _session.Color = Color.Blue;
                 _session.LogMessage("این پیام آبی رنگ است");
-                _session.Color = Color.Black; // بازگشت به رنگ پیش‌فرض
             }
             finally
             {
@@ -455,7 +466,8 @@ namespace SmartInspectSample
                 {
                     // ایجاد یک استثنا عمدی
                     _session.LogMessage("تلاش برای تقسیم بر صفر...");
-                    int result = 10 / 0; // ایجاد استثنا
+                    int divisor = 0; // Set to zero at runtime to force exception
+                    int result = 10 / divisor; // ایجاد استثنا
                 }
                 catch (DivideByZeroException ex)
                 {
@@ -611,7 +623,14 @@ namespace SmartInspectSample
                     _session.LogMessage($"زمان ایجاد: {fileInfo.CreationTime}");
                     
                     // لاگ کردن محتوای فایل
-                    _session.LogFile("محتوای فایل", tempFilePath);
+                    _session.LogMessage($"محتوای فایل: {tempFilePath}");
+                    try {
+                        string content = File.ReadAllText(tempFilePath);
+                        _session.LogMessage(content);
+                    }
+                    catch (Exception ex) {
+                        _session.LogMessage($"Error reading file: {ex.Message}");
+                    }
                     
                     // خواندن و ثبت محتوای فایل به صورت دستی
                     string[] lines = File.ReadAllLines(tempFilePath);
