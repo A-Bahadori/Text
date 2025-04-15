@@ -9,79 +9,97 @@ namespace SmartInspectSample
     // کلاس مدیریت لاگر با استفاده از الگوی Singleton
     public static class SILogger
     {
-        private static readonly SiAuto _siAuto;
+        private static readonly SmartInspect _si;
+        private static readonly Session _session;
         
         static SILogger()
         {
-            _siAuto = new SiAuto();
+            _si = new SmartInspect("SILogger");
             
             // تنظیمات پیش‌فرض
-            _siAuto.Si.Connections = "file(filename=\"C:\\Logs\\AppLog.sil\", rotate=daily)";
-            _siAuto.Si.Level = Level.Debug;
-            _siAuto.Si.Enabled = true;
+            _si.Connections = "file(filename=\"C:\\Logs\\AppLog.sil\", rotate=daily)";
+            _si.Level = Level.Debug;
+            _si.Enabled = true;
+            
+            _session = _si.AddSession("Main");
         }
         
         public static Session MainSession
         {
-            get { return _siAuto.Main; }
+            get { return _session; }
         }
         
         public static void Configure(string connections, Level level = Level.Debug)
         {
-            _siAuto.Si.Connections = connections;
-            _siAuto.Si.Level = level;
+            _si.Connections = connections;
+            _si.Level = level;
         }
         
         public static void SetEnabled(bool enabled)
         {
-            _siAuto.Si.Enabled = enabled;
+            _si.Enabled = enabled;
         }
         
         public static void LogMethodEntry(string methodName)
         {
-            _siAuto.Main.EnterMethod(methodName);
+            _session.EnterMethod(methodName);
         }
         
         public static void LogMethodExit(string methodName)
         {
-            _siAuto.Main.LeaveMethod(methodName);
+            _session.LeaveMethod(methodName);
         }
         
         public static void LogInfo(string message)
         {
-            _siAuto.Main.LogMessage(message);
+            _session.LogMessage(message);
         }
         
         public static void LogWarning(string message)
         {
-            _siAuto.Main.LogWarning(message);
+            _session.LogWarning(message);
         }
         
         public static void LogError(string message, Exception ex = null)
         {
             if (ex != null)
             {
-                _siAuto.Main.LogException(message, ex);
+                _session.LogException(message, ex);
             }
             else
             {
-                _siAuto.Main.LogError(message);
+                _session.LogError(message);
             }
         }
         
         public static void LogDebug(string message)
         {
-            _siAuto.Main.LogDebug(message);
+            _session.LogDebug(message);
+        }
+        
+        public static void LogInteger(string title, int value)
+        {
+            _session.LogInteger(title, value);
+        }
+        
+        public static void LogString(string title, string value)
+        {
+            _session.LogString(title, value);
+        }
+        
+        public static void LogValue(string title, object value)
+        {
+            _session.LogValue(title, value);
         }
         
         public static void LogObject(string title, object value)
         {
             // چون در نسخه قدیمی LogObject به صورت مستقیم وجود ندارد، می‌توانیم خصوصیات را به صورت دستی لاگ کنیم
-            _siAuto.Main.LogMessage($"--- {title} ---");
+            _session.LogMessage($"--- {title} ---");
             
             if (value == null)
             {
-                _siAuto.Main.LogMessage("(null)");
+                _session.LogMessage("(null)");
                 return;
             }
             
@@ -90,26 +108,26 @@ namespace SmartInspectSample
                 try
                 {
                     var propValue = prop.GetValue(value, null);
-                    _siAuto.Main.LogString($"{prop.Name}", propValue?.ToString() ?? "(null)");
+                    _session.LogString($"{prop.Name}", propValue?.ToString() ?? "(null)");
                 }
                 catch
                 {
-                    _siAuto.Main.LogString($"{prop.Name}", "(error getting value)");
+                    _session.LogString($"{prop.Name}", "(error getting value)");
                 }
             }
         }
         
         public static void BeginTimedOperation(string operationName)
         {
-            _siAuto.Main.EnterMethod(operationName);
-            _siAuto.Main.LogValue("Start Time", DateTime.Now);
+            _session.EnterMethod(operationName);
+            _session.LogValue("Start Time", DateTime.Now);
         }
         
         public static void EndTimedOperation(string operationName, DateTime startTime)
         {
             TimeSpan elapsed = DateTime.Now - startTime;
-            _siAuto.Main.LogValue("Elapsed Time (ms)", elapsed.TotalMilliseconds);
-            _siAuto.Main.LeaveMethod(operationName);
+            _session.LogValue("Elapsed Time (ms)", elapsed.TotalMilliseconds);
+            _session.LeaveMethod(operationName);
         }
     }
     
@@ -244,7 +262,7 @@ namespace SmartInspectSample
                 SILogger.LogObject("Order Info", order);
                 SILogger.LogObject("Customer Info", order.Customer);
                 
-                SILogger.LogMessage("Saving products:");
+                SILogger.LogInfo("Saving products:");
                 foreach (var product in order.Products)
                 {
                     SILogger.LogObject($"Product {product.Id}", product);
@@ -254,7 +272,7 @@ namespace SmartInspectSample
                 // شبیه‌سازی ذخیره سفارش
                 Thread.Sleep(200);
                 
-                SILogger.LogMessage("Order saved successfully");
+                SILogger.LogInfo("Order saved successfully");
                 return true;
             }
             catch (Exception ex)
@@ -305,10 +323,10 @@ namespace SmartInspectSample
                 }
                 
                 // شبیه‌سازی پردازش فایل
-                SILogger.LogMessage("Processing file contents...");
+                SILogger.LogInfo("Processing file contents...");
                 Thread.Sleep(300);
                 
-                SILogger.LogMessage("File processing completed");
+                SILogger.LogInfo("File processing completed");
             }
             catch (Exception ex)
             {
@@ -324,9 +342,15 @@ namespace SmartInspectSample
     // کلاس اصلی برنامه که تمام مثال‌ها را دربرمی‌گیرد
     class Program
     {
-        private static readonly SiAuto _si = new SiAuto();
+        private static readonly SmartInspect _si = new SmartInspect("MainApplication");
+        private static readonly Session _session;
         private static readonly DataService _dataService = new DataService();
         private static readonly FileProcessor _fileProcessor = new FileProcessor();
+        
+        static Program()
+        {
+            _session = _si.AddSession("Main");
+        }
         
         static void Main(string[] args)
         {
@@ -350,122 +374,122 @@ namespace SmartInspectSample
             }
             catch (Exception ex)
             {
-                _si.Main.LogException("خطای کلی در برنامه", ex);
+                _session.LogException("خطای کلی در برنامه", ex);
                 Console.WriteLine($"خطا: {ex.Message}");
             }
             finally
             {
                 // بستن SmartInspect
-                _si.Si.Enabled = false;
+                _si.Enabled = false;
             }
         }
         
         private static void InitializeSmartInspect()
         {
-            // تنظیم اولیه SmartInspect با استفاده از کلاس SiAuto
-            _si.Si.Enabled = true;
+            // تنظیم اولیه SmartInspect
+            _si.Enabled = true;
             
             // تنظیم مسیر فایل لاگ
-            _si.Si.Connections = "file(filename=\"C:\\Logs\\AppLog.sil\", " +
+            _si.Connections = "file(filename=\"C:\\Logs\\AppLog.sil\", " +
                                "rotate=daily, maxsize=10mb, maxparts=5)";
             
             // تنظیم سطح لاگ‌گیری
-            _si.Si.Level = Level.Debug;
+            _si.Level = Level.Debug;
             
             // ثبت شروع برنامه
-            _si.Main.LogMessage("===== برنامه شروع شد =====");
-            _si.Main.LogSystem("اطلاعات سیستم");
+            _session.LogMessage("===== برنامه شروع شد =====");
+            _session.LogSystem("اطلاعات سیستم");
         }
         
         private static void BasicLoggingExample()
         {
-            _si.Main.EnterMethod("BasicLoggingExample");
+            _session.EnterMethod("BasicLoggingExample");
             
             try
             {
-                _si.Main.LogMessage("مثال ۱: نمونه‌های اولیه لاگ‌گیری");
+                _session.LogMessage("مثال ۱: نمونه‌های اولیه لاگ‌گیری");
                 
                 // لاگ‌های با سطوح مختلف
-                _si.Main.LogVerbose("این یک پیام با جزئیات است");
-                _si.Main.LogDebug("این یک پیام دیباگ است");
-                _si.Main.LogMessage("این یک پیام معمولی است");
-                _si.Main.LogWarning("این یک هشدار است");
-                _si.Main.LogError("این یک خطا است (به عنوان مثال)");
+                _session.LogVerbose("این یک پیام با جزئیات است");
+                _session.LogDebug("این یک پیام دیباگ است");
+                _session.LogMessage("این یک پیام معمولی است");
+                _session.LogWarning("این یک هشدار است");
+                _session.LogError("این یک خطا است (به عنوان مثال)");
                 
                 // ثبت انواع داده
-                _si.Main.LogInteger("عدد صحیح", 42);
-                _si.Main.LogString("رشته متنی", "متن نمونه");
-                _si.Main.LogBoolean("مقدار منطقی", true);
-                _si.Main.LogDateTime("تاریخ و زمان", DateTime.Now);
+                _session.LogInteger("عدد صحیح", 42);
+                _session.LogString("رشته متنی", "متن نمونه");
+                _session.LogBoolean("مقدار منطقی", true);
+                _session.LogDateTime("تاریخ و زمان", DateTime.Now);
                 
                 // تنظیم رنگ موقت
-                _si.Main.Color = Color.Blue;
-                _si.Main.LogMessage("این پیام آبی رنگ است");
-                _si.Main.Color = Color.Black; // بازگشت به رنگ پیش‌فرض
+                _session.Color = Color.Blue;
+                _session.LogMessage("این پیام آبی رنگ است");
+                _session.Color = Color.Black; // بازگشت به رنگ پیش‌فرض
             }
             finally
             {
-                _si.Main.LeaveMethod("BasicLoggingExample");
+                _session.LeaveMethod("BasicLoggingExample");
             }
         }
         
         private static void ExceptionHandlingExample()
         {
-            _si.Main.EnterMethod("ExceptionHandlingExample");
+            _session.EnterMethod("ExceptionHandlingExample");
             
             try
             {
-                _si.Main.LogMessage("مثال ۲: مدیریت استثناها");
+                _session.LogMessage("مثال ۲: مدیریت استثناها");
                 
                 try
                 {
                     // ایجاد یک استثنا عمدی
-                    _si.Main.LogMessage("تلاش برای تقسیم بر صفر...");
+                    _session.LogMessage("تلاش برای تقسیم بر صفر...");
                     int result = 10 / 0; // ایجاد استثنا
                 }
                 catch (DivideByZeroException ex)
                 {
                     // ثبت استثنا
-                    _si.Main.LogException("خطای تقسیم بر صفر", ex);
+                    _session.LogException("خطای تقسیم بر صفر", ex);
                 }
                 
                 try
                 {
                     // استثنای دیگر
-                    _si.Main.LogMessage("تلاش برای دسترسی به یک آرایه خارج از محدوده...");
+                    _session.LogMessage("تلاش برای دسترسی به یک آرایه خارج از محدوده...");
                     int[] numbers = new int[3];
                     int value = numbers[10]; // ایجاد استثنا
                 }
                 catch (IndexOutOfRangeException ex)
                 {
                     // ثبت استثنا
-                    _si.Main.LogException("خطای دسترسی به آرایه", ex);
+                    _session.LogException("خطای دسترسی به آرایه", ex);
                 }
             }
             finally
             {
-                _si.Main.LeaveMethod("ExceptionHandlingExample");
+                _session.LeaveMethod("ExceptionHandlingExample");
             }
         }
         
         private static void PerformanceMeasurementExample()
         {
-            _si.Main.EnterMethod("PerformanceMeasurementExample");
+            _session.EnterMethod("PerformanceMeasurementExample");
             DateTime startTime = DateTime.Now;
             
             try
             {
-                _si.Main.LogMessage("مثال ۳: اندازه‌گیری زمان اجرا");
+                _session.LogMessage("مثال ۳: اندازه‌گیری زمان اجرا");
                 
                 // اندازه‌گیری زمان یک عملیات ساده
                 DateTime operationStart = DateTime.Now;
                 
-                _si.Main.LogMessage("شروع عملیات زمان‌بر...");
+                _session.LogMessage("شروع عملیات زمان‌بر...");
                 Thread.Sleep(1500); // شبیه‌سازی یک عملیات زمان‌بر 
-                _si.Main.LogMessage("پایان عملیات زمان‌بر");
+                _session.LogMessage("پایان عملیات زمان‌بر");
                 
                 TimeSpan operationTime = DateTime.Now - operationStart;
-                _si.Main.LogValue("زمان اجرای عملیات (میلی‌ثانیه)", operationTime.TotalMilliseconds);
+                _session.LogValue("زمان اجرای عملیات (میلی‌ثانیه)", operationTime.TotalMilliseconds);
                 
                 // اندازه‌گیری زمان یک حلقه
                 operationStart = DateTime.Now;
@@ -477,39 +501,39 @@ namespace SmartInspectSample
                 }
                 
                 operationTime = DateTime.Now - operationStart;
-                _si.Main.LogInteger("مجموع محاسبه شده", sum);
-                _si.Main.LogValue("زمان محاسبه (میلی‌ثانیه)", operationTime.TotalMilliseconds);
+                _session.LogInteger("مجموع محاسبه شده", sum);
+                _session.LogValue("زمان محاسبه (میلی‌ثانیه)", operationTime.TotalMilliseconds);
             }
             finally
             {
                 TimeSpan totalTime = DateTime.Now - startTime;
-                _si.Main.LogValue("زمان کل (میلی‌ثانیه)", totalTime.TotalMilliseconds);
-                _si.Main.LeaveMethod("PerformanceMeasurementExample");
+                _session.LogValue("زمان کل (میلی‌ثانیه)", totalTime.TotalMilliseconds);
+                _session.LeaveMethod("PerformanceMeasurementExample");
             }
         }
         
         private static void DataStructuresExample()
         {
-            _si.Main.EnterMethod("DataStructuresExample");
+            _session.EnterMethod("DataStructuresExample");
             
             try
             {
-                _si.Main.LogMessage("مثال ۴: ثبت ساختارهای داده");
+                _session.LogMessage("مثال ۴: ثبت ساختارهای داده");
                 
                 // ثبت آرایه
                 int[] numbers = { 1, 2, 3, 4, 5 };
-                _si.Main.LogMessage("آرایه اعداد:");
+                _session.LogMessage("آرایه اعداد:");
                 for (int i = 0; i < numbers.Length; i++)
                 {
-                    _si.Main.LogInteger($"numbers[{i}]", numbers[i]);
+                    _session.LogInteger($"numbers[{i}]", numbers[i]);
                 }
                 
                 // ثبت لیست
                 List<string> names = new List<string> { "علی", "محمد", "رضا", "حسین" };
-                _si.Main.LogMessage("لیست نام‌ها:");
+                _session.LogMessage("لیست نام‌ها:");
                 for (int i = 0; i < names.Count; i++)
                 {
-                    _si.Main.LogString($"names[{i}]", names[i]);
+                    _session.LogString($"names[{i}]", names[i]);
                 }
                 
                 // ثبت دیکشنری
@@ -521,10 +545,10 @@ namespace SmartInspectSample
                     { "حسین", 90 }
                 };
                 
-                _si.Main.LogMessage("امتیازات:");
+                _session.LogMessage("امتیازات:");
                 foreach (var entry in scores)
                 {
-                    _si.Main.LogInteger($"امتیاز {entry.Key}", entry.Value);
+                    _session.LogInteger($"امتیاز {entry.Key}", entry.Value);
                 }
                 
                 // ثبت کلاس
@@ -536,25 +560,25 @@ namespace SmartInspectSample
                     Phone = "09123456789"
                 };
                 
-                _si.Main.LogMessage("اطلاعات مشتری:");
-                _si.Main.LogInteger("شناسه", customer.Id);
-                _si.Main.LogString("نام", customer.Name);
-                _si.Main.LogString("ایمیل", customer.Email);
-                _si.Main.LogString("تلفن", customer.Phone);
+                _session.LogMessage("اطلاعات مشتری:");
+                _session.LogInteger("شناسه", customer.Id);
+                _session.LogString("نام", customer.Name);
+                _session.LogString("ایمیل", customer.Email);
+                _session.LogString("تلفن", customer.Phone);
             }
             finally
             {
-                _si.Main.LeaveMethod("DataStructuresExample");
+                _session.LeaveMethod("DataStructuresExample");
             }
         }
         
         private static void FileOperationsExample()
         {
-            _si.Main.EnterMethod("FileOperationsExample");
+            _session.EnterMethod("FileOperationsExample");
             
             try
             {
-                _si.Main.LogMessage("مثال ۵: عملیات فایل");
+                _session.LogMessage("مثال ۵: عملیات فایل");
                 
                 // ایجاد یک فایل متنی موقت برای تست
                 string tempFilePath = Path.Combine(Path.GetTempPath(), "smartinspect_test.txt");
@@ -562,30 +586,30 @@ namespace SmartInspectSample
                 try
                 {
                     // نوشتن در فایل
-                    _si.Main.LogString("مسیر فایل", tempFilePath);
-                    _si.Main.LogMessage("در حال ایجاد فایل...");
+                    _session.LogString("مسیر فایل", tempFilePath);
+                    _session.LogMessage("در حال ایجاد فایل...");
                     
                     File.WriteAllText(tempFilePath, "این یک فایل تست برای SmartInspect است.\r\n" +
                                                   "خط دوم فایل تست.\r\n" +
                                                   "خط سوم فایل تست.");
                     
-                    _si.Main.LogMessage("فایل با موفقیت ایجاد شد");
+                    _session.LogMessage("فایل با موفقیت ایجاد شد");
                     
                     // نمایش اطلاعات فایل
                     FileInfo fileInfo = new FileInfo(tempFilePath);
-                    _si.Main.LogValue("اندازه فایل (بایت)", fileInfo.Length);
-                    _si.Main.LogValue("زمان ایجاد", fileInfo.CreationTime);
+                    _session.LogValue("اندازه فایل (بایت)", fileInfo.Length);
+                    _session.LogValue("زمان ایجاد", fileInfo.CreationTime);
                     
                     // لاگ کردن محتوای فایل
-                    _si.Main.LogFile("محتوای فایل", tempFilePath);
+                    _session.LogFile("محتوای فایل", tempFilePath);
                     
                     // خواندن و ثبت محتوای فایل به صورت دستی
                     string[] lines = File.ReadAllLines(tempFilePath);
-                    _si.Main.LogInteger("تعداد خطوط", lines.Length);
+                    _session.LogInteger("تعداد خطوط", lines.Length);
                     
                     for (int i = 0; i < lines.Length; i++)
                     {
-                        _si.Main.LogString($"خط {i+1}", lines[i]);
+                        _session.LogString($"خط {i+1}", lines[i]);
                     }
                     
                     // پردازش فایل با استفاده از کلاس FileProcessor
@@ -597,27 +621,27 @@ namespace SmartInspectSample
                     if (File.Exists(tempFilePath))
                     {
                         File.Delete(tempFilePath);
-                        _si.Main.LogMessage("فایل موقت حذف شد");
+                        _session.LogMessage("فایل موقت حذف شد");
                     }
                 }
             }
             catch (Exception ex)
             {
-                _si.Main.LogException("خطا در عملیات فایل", ex);
+                _session.LogException("خطا در عملیات فایل", ex);
             }
             finally
             {
-                _si.Main.LeaveMethod("FileOperationsExample");
+                _session.LeaveMethod("FileOperationsExample");
             }
         }
         
         private static void DatabaseOperationSimulationExample()
         {
-            _si.Main.EnterMethod("DatabaseOperationSimulationExample");
+            _session.EnterMethod("DatabaseOperationSimulationExample");
             
             try
             {
-                _si.Main.LogMessage("مثال ۶: شبیه‌سازی عملیات دیتابیس");
+                _session.LogMessage("مثال ۶: شبیه‌سازی عملیات دیتابیس");
                 
                 // شبیه‌سازی یک عملیات دیتابیس کامل
                 
@@ -626,7 +650,7 @@ namespace SmartInspectSample
                 
                 if (customer == null)
                 {
-                    _si.Main.LogError("مشتری یافت نشد");
+                    _session.LogError("مشتری یافت نشد");
                     return;
                 }
                 
@@ -635,7 +659,7 @@ namespace SmartInspectSample
                 
                 if (products.Count == 0)
                 {
-                    _si.Main.LogError("محصولی یافت نشد");
+                    _session.LogError("محصولی یافت نشد");
                     return;
                 }
                 
@@ -650,38 +674,38 @@ namespace SmartInspectSample
                 
                 // 4. محاسبه و لاگ کردن مجموع سفارش
                 decimal total = 0;
-                _si.Main.LogMessage("محاسبه مجموع سفارش:");
+                _session.LogMessage("محاسبه مجموع سفارش:");
                 
                 foreach (var product in order.Products)
                 {
                     decimal itemTotal = product.Price * product.Quantity;
-                    _si.Main.LogValue($"محصول {product.Id}: {product.Name}", itemTotal);
+                    _session.LogValue($"محصول {product.Id}: {product.Name}", itemTotal);
                     total += itemTotal;
                 }
                 
-                _si.Main.LogValue("مجموع نهایی", total);
+                _session.LogValue("مجموع نهایی", total);
                 
                 // 5. ذخیره سفارش
                 bool saveResult = _dataService.SaveOrder(order);
                 
-                _si.Main.LogBoolean("نتیجه ذخیره سفارش", saveResult);
+                _session.LogBoolean("نتیجه ذخیره سفارش", saveResult);
                 
                 if (saveResult)
                 {
-                    _si.Main.LogMessage("سفارش با موفقیت ثبت شد");
+                    _session.LogMessage("سفارش با موفقیت ثبت شد");
                 }
                 else
                 {
-                    _si.Main.LogError("خطا در ثبت سفارش");
+                    _session.LogError("خطا در ثبت سفارش");
                 }
             }
             catch (Exception ex)
             {
-                _si.Main.LogException("خطا در شبیه‌سازی عملیات دیتابیس", ex);
+                _session.LogException("خطا در شبیه‌سازی عملیات دیتابیس", ex);
             }
             finally
             {
-                _si.Main.LeaveMethod("DatabaseOperationSimulationExample");
+                _session.LeaveMethod("DatabaseOperationSimulationExample");
             }
         }
     }
