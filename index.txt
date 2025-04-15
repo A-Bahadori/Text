@@ -79,22 +79,27 @@ namespace SmartInspectSample
         
         public static void LogInteger(string title, int value)
         {
-            _session.LogText(title, value.ToString());
+            _session.LogMessage($"{title}: {value}");
         }
         
         public static void LogString(string title, string value)
         {
-            _session.LogText(title, value);
+            _session.LogMessage($"{title}: {value}");
         }
         
         public static void LogValue(string title, object value)
         {
-            _session.LogText(title, value?.ToString() ?? "(null)");
+            _session.LogMessage($"{title}: {value?.ToString() ?? "(null)"}");
         }
         
         public static void LogBoolean(string title, bool value)
         {
-            _session.LogText(title, value.ToString());
+            _session.LogMessage($"{title}: {value}");
+        }
+        
+        public static void LogText(string title, string value)
+        {
+            _session.LogMessage($"{title}: {value}");
         }
         
         public static void LogObject(string title, object value)
@@ -113,11 +118,11 @@ namespace SmartInspectSample
                 try
                 {
                     var propValue = prop.GetValue(value, null);
-                    _session.LogString($"{prop.Name}", propValue?.ToString() ?? "(null)");
+                    _session.LogMessage($"{prop.Name}: {propValue?.ToString() ?? "(null)"}");
                 }
                 catch
                 {
-                    _session.LogString($"{prop.Name}", "(error getting value)");
+                    _session.LogMessage($"{prop.Name}: (error getting value)");
                 }
             }
         }
@@ -174,7 +179,7 @@ namespace SmartInspectSample
             SILogger.LogMethodEntry("GetCustomer");
             try 
             {
-                SILogger.LogInteger("Customer ID", id);
+                SILogger.LogMessage($"Customer ID: {id}");
                 
                 // شبیه‌سازی دریافت مشتری از دیتابیس
                 if (id <= 0)
@@ -212,7 +217,7 @@ namespace SmartInspectSample
             SILogger.LogMethodEntry("GetProducts");
             try
             {
-                SILogger.LogInteger("Requested Count", count);
+                SILogger.LogMessage($"Requested Count: {count}");
                 
                 if (count <= 0)
                 {
@@ -234,10 +239,10 @@ namespace SmartInspectSample
                     };
                     
                     products.Add(product);
-                    SILogger.LogString("Added Product", product.Name);
+                    SILogger.LogMessage($"Added Product: {product.Name}");
                 }
                 
-                SILogger.LogInteger("Products Retrieved", products.Count);
+                SILogger.LogMessage($"Products Retrieved: {products.Count}");
                 return products;
             }
             catch (Exception ex)
@@ -288,7 +293,7 @@ namespace SmartInspectSample
             finally
             {
                 TimeSpan elapsed = DateTime.Now - startTime;
-                SILogger.LogText("Save Operation Duration (ms)", elapsed.TotalMilliseconds.ToString());
+                SILogger.LogMessage($"Save Operation Duration (ms): {elapsed.TotalMilliseconds}");
                 SILogger.LogMethodExit("SaveOrder");
             }
         }
@@ -302,7 +307,7 @@ namespace SmartInspectSample
             
             try
             {
-                SILogger.LogString("File Path", filePath);
+                SILogger.LogMessage($"File Path: {filePath}");
                 
                 if (string.IsNullOrEmpty(filePath))
                 {
@@ -318,8 +323,8 @@ namespace SmartInspectSample
                 
                 // لاگ اطلاعات فایل
                 var fileInfo = new FileInfo(filePath);
-                SILogger.LogText("File Size (bytes)", fileInfo.Length.ToString());
-                SILogger.LogText("Creation Time", fileInfo.CreationTime.ToString());
+                SILogger.LogMessage($"File Size (bytes): {fileInfo.Length}");
+                SILogger.LogMessage($"Creation Time: {fileInfo.CreationTime}");
                 
                 // لاگ محتوای فایل (برای فایل‌های متنی)
                 if (fileInfo.Extension.ToLower() == ".txt" || fileInfo.Extension.ToLower() == ".log")
@@ -422,10 +427,10 @@ namespace SmartInspectSample
                 _session.LogError("این یک خطا است (به عنوان مثال)");
                 
                 // ثبت انواع داده
-                _session.LogInteger("عدد صحیح", 42);
-                _session.LogString("رشته متنی", "متن نمونه");
-                _session.LogText("مقدار منطقی", true.ToString());
-                _session.LogText("تاریخ و زمان", DateTime.Now.ToString());
+                _session.LogMessage($"عدد صحیح: {42}");
+                _session.LogMessage($"رشته متنی: {"متن نمونه"}");
+                _session.LogMessage($"مقدار منطقی: {true}");
+                _session.LogMessage($"تاریخ و زمان: {DateTime.Now}");
                 
                 // تنظیم رنگ موقت
                 _session.Color = Color.Blue;
@@ -494,7 +499,7 @@ namespace SmartInspectSample
                 _session.LogMessage("پایان عملیات زمان‌بر");
                 
                 TimeSpan operationTime = DateTime.Now - operationStart;
-                _session.LogText("زمان اجرای عملیات (میلی‌ثانیه)", operationTime.TotalMilliseconds.ToString());
+                _session.LogMessage($"زمان اجرای عملیات (میلی‌ثانیه): {operationTime.TotalMilliseconds}");
                 
                 // اندازه‌گیری زمان یک حلقه
                 operationStart = DateTime.Now;
@@ -506,13 +511,13 @@ namespace SmartInspectSample
                 }
                 
                 operationTime = DateTime.Now - operationStart;
-                _session.LogInteger("مجموع محاسبه شده", sum);
-                _session.LogText("زمان محاسبه (میلی‌ثانیه)", operationTime.TotalMilliseconds.ToString());
+                _session.LogMessage($"مجموع محاسبه شده: {sum}");
+                _session.LogMessage($"زمان محاسبه (میلی‌ثانیه): {operationTime.TotalMilliseconds}");
             }
             finally
             {
                 TimeSpan totalTime = DateTime.Now - startTime;
-                _session.LogText("زمان کل (میلی‌ثانیه)", totalTime.TotalMilliseconds.ToString());
+                _session.LogMessage($"زمان کل (میلی‌ثانیه): {totalTime.TotalMilliseconds}");
                 _session.LeaveMethod("PerformanceMeasurementExample");
             }
         }
@@ -530,7 +535,7 @@ namespace SmartInspectSample
                 _session.LogMessage("آرایه اعداد:");
                 for (int i = 0; i < numbers.Length; i++)
                 {
-                    _session.LogInteger($"numbers[{i}]", numbers[i]);
+                    _session.LogMessage($"numbers[{i}]: {numbers[i]}");
                 }
                 
                 // ثبت لیست
@@ -538,7 +543,7 @@ namespace SmartInspectSample
                 _session.LogMessage("لیست نام‌ها:");
                 for (int i = 0; i < names.Count; i++)
                 {
-                    _session.LogString($"names[{i}]", names[i]);
+                    _session.LogMessage($"names[{i}]: {names[i]}");
                 }
                 
                 // ثبت دیکشنری
@@ -553,7 +558,7 @@ namespace SmartInspectSample
                 _session.LogMessage("امتیازات:");
                 foreach (var entry in scores)
                 {
-                    _session.LogInteger($"امتیاز {entry.Key}", entry.Value);
+                    _session.LogMessage($"امتیاز {entry.Key}: {entry.Value}");
                 }
                 
                 // ثبت کلاس
@@ -566,10 +571,10 @@ namespace SmartInspectSample
                 };
                 
                 _session.LogMessage("اطلاعات مشتری:");
-                _session.LogInteger("شناسه", customer.Id);
-                _session.LogString("نام", customer.Name);
-                _session.LogString("ایمیل", customer.Email);
-                _session.LogString("تلفن", customer.Phone);
+                _session.LogMessage($"شناسه: {customer.Id}");
+                _session.LogMessage($"نام: {customer.Name}");
+                _session.LogMessage($"ایمیل: {customer.Email}");
+                _session.LogMessage($"تلفن: {customer.Phone}");
             }
             finally
             {
@@ -591,7 +596,7 @@ namespace SmartInspectSample
                 try
                 {
                     // نوشتن در فایل
-                    _session.LogString("مسیر فایل", tempFilePath);
+                    _session.LogMessage($"مسیر فایل: {tempFilePath}");
                     _session.LogMessage("در حال ایجاد فایل...");
                     
                     File.WriteAllText(tempFilePath, "این یک فایل تست برای SmartInspect است.\r\n" +
@@ -602,19 +607,19 @@ namespace SmartInspectSample
                     
                     // نمایش اطلاعات فایل
                     FileInfo fileInfo = new FileInfo(tempFilePath);
-                    _session.LogText("اندازه فایل (بایت)", fileInfo.Length.ToString());
-                    _session.LogText("زمان ایجاد", fileInfo.CreationTime.ToString());
+                    _session.LogMessage($"اندازه فایل (بایت): {fileInfo.Length}");
+                    _session.LogMessage($"زمان ایجاد: {fileInfo.CreationTime}");
                     
                     // لاگ کردن محتوای فایل
                     _session.LogFile("محتوای فایل", tempFilePath);
                     
                     // خواندن و ثبت محتوای فایل به صورت دستی
                     string[] lines = File.ReadAllLines(tempFilePath);
-                    _session.LogInteger("تعداد خطوط", lines.Length);
+                    _session.LogMessage($"تعداد خطوط: {lines.Length}");
                     
                     for (int i = 0; i < lines.Length; i++)
                     {
-                        _session.LogString($"خط {i+1}", lines[i]);
+                        _session.LogMessage($"خط {i+1}: {lines[i]}");
                     }
                     
                     // پردازش فایل با استفاده از کلاس FileProcessor
@@ -684,16 +689,16 @@ namespace SmartInspectSample
                 foreach (var product in order.Products)
                 {
                     decimal itemTotal = product.Price * product.Quantity;
-                    _session.LogText($"محصول {product.Id}: {product.Name}", itemTotal.ToString());
+                    _session.LogMessage($"محصول {product.Id}: {product.Name} - {itemTotal}");
                     total += itemTotal;
                 }
                 
-                _session.LogText("مجموع نهایی", total.ToString());
+                _session.LogMessage($"مجموع نهایی: {total}");
                 
                 // 5. ذخیره سفارش
                 bool saveResult = _dataService.SaveOrder(order);
                 
-                _session.LogText("نتیجه ذخیره سفارش", saveResult.ToString());
+                _session.LogMessage($"نتیجه ذخیره سفارش: {saveResult}");
                 
                 if (saveResult)
                 {
