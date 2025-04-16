@@ -1,5 +1,88 @@
-refactor(Program.cs): streamline minimal API endpoint configuration
+using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using Gurock.SmartInspect;
+using System.Text.Json;
 
-- Remove redundant `app.Run` and commented-out code (`//1`, `//2`, `//3`).
-- Consolidate multiple endpoint definitions into a single `MapGet` with async/await.
-- Align with .NET 8 minimal API best practices by simplifying response handling.
+var builder = WebApplication.CreateBuilder(args);
+
+// تنظیمات SmartInspect
+var smartInspect = new SmartInspect("LoginAPI");
+smartInspect.Connections = "tcp(host=localhost,port=4228)";
+smartInspect.Enabled = true;
+
+// اضافه کردن سرویس‌های مورد نیاز
+builder.Services.AddSingleton(smartInspect);
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
+var app = builder.Build();
+
+// تنظیمات میدلور
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+
+app.UseHttpsRedirection();
+
+// مدل داده برای نمایش نتیجه لاگین
+class LoginResult
+{
+    public bool Success { get; set; }
+    public string Message { get; set; }
+    public string Username { get; set; }
+}
+
+// API برای شبیه‌سازی لاگین از طریق URL
+app.MapGet("/login/{username}/{password}", (string username, string password, SmartInspect si) =>
+{
+    // ایجاد یک سشن با نام کاربر
+    var session = si.AddSession(username);
+    session.Active = true;
+    
+    // لاگ کردن اطلاعات لاگین
+    session.EnterMethod("LoginController", "Login");
+    session.LogMessage($"تلاش برای ورود کاربر: {username}");
+    
+    // شبیه‌سازی بررسی اطلاعات ورود
+    var loginSuccessful = !string.IsNullOrEmpty(username) && !string.IsNullOrEmpty(password) && password.Length >= 6;
+    
+    // نتیجه لاگین
+    var result = new LoginResult
+    {
+        Success = loginSuccessful,
+        Username = username,
+        Message = loginSuccessful ? "ورود موفقیت‌آمیز بود" : "نام کاربری یا رمز عبور نادرست است"
+    };
+    
+    // لاگ کردن نتیجه
+    if (loginSuccessful)
+    {
+        session.LogMessage("ورود موفقیت‌آمیز");
+        session.LogObject("اطلاعات کاربر", JsonSerializer.Serialize(new { Username = username, LoginTime = DateTime.Now }));
+    }
+    else
+    {
+        session.LogWarning("ورود ناموفق");
+        session.LogObject("جزئیات خطا", JsonSerializer.Serialize(new { Reason = "اطلاعات نامعتبر", Username = username }));
+    }
+    
+    session.LeaveMethod("LoginController", "Login");
+    
+    return result;
+});
+
+// API برای نمایش وضعیت سلامت
+app.MapGet("/health", (SmartInspect si) =>
+{
+    var session = si.AddSession("HealthCheck");
+    session.Active = true;
+    session.LogMessage("بررسی وضعیت سلامت API");
+    
+    return new { Status = "Active", Timestamp = DateTime.Now };
+});
+
+app.Run();
