@@ -1,88 +1,58 @@
-using Microsoft.AspNetCore.Builder;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using Gurock.SmartInspect;
-using System.Text.Json;
+using System;
+using System.Reflection;
 
-var builder = WebApplication.CreateBuilder(args);
-
-// تنظیمات SmartInspect
-var smartInspect = new SmartInspect("LoginAPI");
-smartInspect.Connections = "tcp(host=localhost,port=4228)";
-smartInspect.Enabled = true;
-
-// اضافه کردن سرویس‌های مورد نیاز
-builder.Services.AddSingleton(smartInspect);
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-
-var app = builder.Build();
-
-// تنظیمات میدلور
-if (app.Environment.IsDevelopment())
+class Program
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    static void Main()
+    {
+        // دریافت نوع یک کلاس
+        Type type = typeof(Person);
+        
+        // نمایش نام کلاس
+        Console.WriteLine($"نام کلاس: {type.Name}");
+        
+        // نمایش تمام پراپرتی‌های کلاس
+        Console.WriteLine("\nپراپرتی‌ها:");
+        PropertyInfo[] properties = type.GetProperties();
+        foreach (PropertyInfo property in properties)
+        {
+            Console.WriteLine($"- {property.Name}: {property.PropertyType.Name}");
+        }
+        
+        // نمایش تمام متدهای کلاس
+        Console.WriteLine("\nمتدها:");
+        MethodInfo[] methods = type.GetMethods();
+        foreach (MethodInfo method in methods)
+        {
+            Console.WriteLine($"- {method.Name}");
+        }
+        
+        // ایجاد نمونه جدید با استفاده از Reflection
+        Console.WriteLine("\nایجاد نمونه جدید:");
+        object personInstance = Activator.CreateInstance(type);
+        
+        // تنظیم مقدار پراپرتی با استفاده از Reflection
+        PropertyInfo nameProperty = type.GetProperty("Name");
+        nameProperty.SetValue(personInstance, "علی");
+        
+        // فراخوانی متد با استفاده از Reflection
+        MethodInfo greetMethod = type.GetMethod("Greet");
+        greetMethod.Invoke(personInstance, null);
+    }
 }
 
-app.UseHttpsRedirection();
-
-// مدل داده برای نمایش نتیجه لاگین
-class LoginResult
+class Person
 {
-    public bool Success { get; set; }
-    public string Message { get; set; }
-    public string Username { get; set; }
+    public string Name { get; set; }
+    public int Age { get; set; }
+    
+    public void Greet()
+    {
+        Console.WriteLine($"سلام، اسم من {Name} است!");
+    }
+    
+    public void Introduce()
+    {
+        Console.WriteLine($"من {Name} هستم و {Age} سال دارم.");
+    }
 }
-
-// API برای شبیه‌سازی لاگین از طریق URL
-app.MapGet("/login/{username}/{password}", (string username, string password, SmartInspect si) =>
-{
-    // ایجاد یک سشن با نام کاربر
-    var session = si.AddSession(username);
-    session.Active = true;
-    
-    // لاگ کردن اطلاعات لاگین
-    session.EnterMethod("LoginController", "Login");
-    session.LogMessage($"تلاش برای ورود کاربر: {username}");
-    
-    // شبیه‌سازی بررسی اطلاعات ورود
-    var loginSuccessful = !string.IsNullOrEmpty(username) && !string.IsNullOrEmpty(password) && password.Length >= 6;
-    
-    // نتیجه لاگین
-    var result = new LoginResult
-    {
-        Success = loginSuccessful,
-        Username = username,
-        Message = loginSuccessful ? "ورود موفقیت‌آمیز بود" : "نام کاربری یا رمز عبور نادرست است"
-    };
-    
-    // لاگ کردن نتیجه
-    if (loginSuccessful)
-    {
-        session.LogMessage("ورود موفقیت‌آمیز");
-        session.LogObject("اطلاعات کاربر", JsonSerializer.Serialize(new { Username = username, LoginTime = DateTime.Now }));
-    }
-    else
-    {
-        session.LogWarning("ورود ناموفق");
-        session.LogObject("جزئیات خطا", JsonSerializer.Serialize(new { Reason = "اطلاعات نامعتبر", Username = username }));
-    }
-    
-    session.LeaveMethod("LoginController", "Login");
-    
-    return result;
-});
-
-// API برای نمایش وضعیت سلامت
-app.MapGet("/health", (SmartInspect si) =>
-{
-    var session = si.AddSession("HealthCheck");
-    session.Active = true;
-    session.LogMessage("بررسی وضعیت سلامت API");
-    
-    return new { Status = "Active", Timestamp = DateTime.Now };
-});
-
-app.Run();
