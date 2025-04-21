@@ -1,1 +1,4 @@
-<!-- <add name="Medtronic.E2ETesting.PoolManager.API.Cln.Integration.Tests AppPool" managedRuntimeVersion="" /> -->
+cd /d D:\Sink\WebApp
+set COMPLUS_ForceENC=1
+set ASPNETCORE_CONTENTROOT=D:\Sink\WebApp
+set ASPNETCORE_ENVIRONMENT=Development
