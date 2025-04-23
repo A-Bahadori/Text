@@ -1,4 +1,10 @@
-cd /d D:\Sink\WebApp
-set COMPLUS_ForceENC=1
-set ASPNETCORE_CONTENTROOT=D:\Sink\WebApp
-set ASPNETCORE_ENVIRONMENT=Development
+{
+  "profiles": {
+    "IIS Express (Custom Config)": {
+      "commandName": "Executable",
+      "executablePath": "C:\\Program Files\\IIS Express\\iisexpress.exe",
+      "commandLineArgs": "/config:\"C:\\path\\to\\your\\applicationhost.config\" /site:MySiteName",
+      "workingDirectory": "C:\\path\\to\\your\\project"
+    }
+  }
+}
