@@ -1,10 +1,190 @@
+using System;
+using System.ComponentModel;
+using System.Data.SqlClient;
+using System.IO;
+using System.Windows.Forms;
+
+namespace ExportRbaTest
 {
-  "profiles": {
-    "IIS Express (Custom Config)": {
-      "commandName": "Executable",
-      "executablePath": "C:\\Program Files\\IIS Express\\iisexpress.exe",
-      "commandLineArgs": "/config:\"C:\\path\\to\\your\\applicationhost.config\" /site:MySiteName",
-      "workingDirectory": "C:\\path\\to\\your\\project"
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            Console.WriteLine("شروع فرآیند Export و تولید فایل rba...");
+            
+            // تنظیمات اولیه
+            string applicationName = "نام_اپلیکیشن_شما"; // نام اپلیکیشن خود را اینجا وارد کنید
+            string outputPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), $"{applicationName}.rba");
+            string password = ""; // در صورت نیاز به رمزگذاری، رمز را اینجا وارد کنید
+            
+            // ایجاد BackgroundWorker برای نمایش پیشرفت
+            BackgroundWorker worker = new BackgroundWorker();
+            worker.WorkerReportsProgress = true;
+            worker.ProgressChanged += Worker_ProgressChanged;
+            
+            // شروع فرآیند Export
+            try
+            {
+                ExportHelper exportHelper = new ExportHelper(applicationName, password, outputPath);
+                bool result = exportHelper.Export(worker);
+                
+                if (result)
+                {
+                    Console.WriteLine($"فایل rba با موفقیت در مسیر {outputPath} ایجاد شد.");
+                }
+                else
+                {
+                    Console.WriteLine("خطا در فرآیند Export.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"خطا: {ex.Message}");
+                Console.WriteLine(ex.StackTrace);
+            }
+            
+            Console.WriteLine("برای خروج کلیدی را فشار دهید...");
+            Console.ReadKey();
+        }
+        
+        private static void Worker_ProgressChanged(object sender, ProgressChangedEventArgs e)
+        {
+            Console.WriteLine($"پیشرفت: {e.ProgressPercentage}% - {e.UserState}");
+        }
     }
-  }
+    
+    // کلاس کمکی برای Export
+    public class ExportHelper
+    {
+        private string applicationName;
+        private string password;
+        private string filePath;
+        private Logger exportLogger;
+        
+        public ExportHelper(string appName, string pass, string path)
+        {
+            applicationName = appName;
+            password = pass;
+            filePath = path;
+            exportLogger = new Logger();
+        }
+        
+        public bool Export(BackgroundWorker worker)
+        {
+            try
+            {
+                // اینجا کد Export از فایل Export.txt را پیاده‌سازی کنید
+                worker.ReportProgress(0, "شروع فرآیند Export...");
+                
+                // ایجاد اتصال به دیتابیس
+                string connectionString = GetConnectionString();
+                using (SqlConnection connection = new SqlConnection(connectionString))
+                {
+                    connection.Open();
+                    
+                    // 1. ایجاد و ذخیره BpmsSchema
+                    worker.ReportProgress(5, "در حال ایجاد BpmsSchema...");
+                    var bpmsSchema = GenerateBpmsSchema(worker, connection);
+                    
+                    // 2. Export داده‌های BPMS
+                    worker.ReportProgress(40, "در حال Export داده‌های BPMS...");
+                    var bpmsMigration = ExportBpmsData(worker, connection, bpmsSchema);
+                    
+                    // 3. Export مدل
+                    worker.ReportProgress(60, "در حال Export مدل...");
+                    var databaseModel = ExportModel(worker, connection);
+                    
+                    // 4. ذخیره فایل‌ها
+                    worker.ReportProgress(90, "در حال ذخیره فایل‌ها...");
+                    SaveFiles(bpmsSchema, bpmsMigration, databaseModel);
+                    
+                    // 5. ایجاد فایل rba
+                    worker.ReportProgress(95, "در حال ایجاد فایل rba...");
+                    CreateRbaFile();
+                    
+                    worker.ReportProgress(100, "فرآیند Export با موفقیت به پایان رسید.");
+                }
+                
+                return true;
+            }
+            catch (Exception ex)
+            {
+                exportLogger.Log(worker, $"خطا: {ex.Message}", LogType.Error);
+                return false;
+            }
+        }
+        
+        private string GetConnectionString()
+        {
+            // اتصال به دیتابیس سیستم خود را اینجا تنظیم کنید
+            return "Data Source=YOUR_SERVER;Initial Catalog=YOUR_DATABASE;Integrated Security=True";
+        }
+        
+        private object GenerateBpmsSchema(BackgroundWorker worker, SqlConnection connection)
+        {
+            // پیاده‌سازی متد GetBpms از کلاس Generator
+            worker.ReportProgress(10, "در حال استخراج اطلاعات جداول...");
+            // کد مربوط به استخراج اطلاعات جداول و ستون‌ها
+            
+            worker.ReportProgress(20, "در حال ایجاد BpmsSchema...");
+            // کد مربوط به ایجاد BpmsSchema
+            
+            return new object(); // جایگزین با شیء BpmsSchema واقعی
+        }
+        
+        private object ExportBpmsData(BackgroundWorker worker, SqlConnection connection, object bpmsSchema)
+        {
+            // پیاده‌سازی متد ExportBpmsData
+            worker.ReportProgress(45, "در حال استخراج داده‌های BPMS...");
+            // کد مربوط به استخراج داده‌های BPMS
+            
+            return new object(); // جایگزین با شیء BpmsMigration واقعی
+        }
+        
+        private object ExportModel(BackgroundWorker worker, SqlConnection connection)
+        {
+            // پیاده‌سازی متد ExportModel
+            worker.ReportProgress(65, "در حال استخراج مدل داده‌ها...");
+            // کد مربوط به استخراج مدل داده‌ها
+            
+            return new object(); // جایگزین با شیء Model واقعی
+        }
+        
+        private void SaveFiles(object bpmsSchema, object bpmsMigration, object databaseModel)
+        {
+            // ذخیره فایل‌های XML
+            string tempDir = Path.Combine(Path.GetTempPath(), "RbaExport");
+            Directory.CreateDirectory(tempDir);
+            
+            // کد مربوط به ذخیره فایل‌های XML
+        }
+        
+        private void CreateRbaFile()
+        {
+            // ایجاد فایل rba نهایی
+            // کد مربوط به ایجاد فایل rba
+        }
+    }
+    
+    // کلاس Logger برای ثبت لاگ‌ها
+    public class Logger
+    {
+        public void Log(BackgroundWorker worker, string message, LogType logType)
+        {
+            Console.WriteLine($"[{logType}] {message}");
+        }
+        
+        public void Dispose()
+        {
+            // آزادسازی منابع
+        }
+    }
+    
+    // نوع لاگ
+    public enum LogType
+    {
+        Info,
+        Warning,
+        Error
+    }
 }
