@@ -1,2 +1,20 @@
 USE YourDatabase;
 EXEC sp_change_users_login 'auto_fix', 'ray';
+
+=======================================================
+
+public RaySysSpc FindValueBySysbyTit(string sys, string tit)
+{
+    var allRecords = FindAll().ToList(); // همه رکوردها را دریافت کنید
+    Console.WriteLine($"تعداد کل رکوردها: {allRecords.Count}"); // تعداد رکوردها را چاپ کنید
+    
+    // مقادیر موجود را بررسی کنید
+    foreach (var record in allRecords)
+    {
+        Console.WriteLine($"Id.RaySys: '{record.Id.RaySys}', Id.InfTit: '{record.Id.InfTit}'");
+    }
+    
+    // سپس جستجو را انجام دهید
+    var result = allRecords.FirstOrDefault(x => x.Id.RaySys == sys && x.Id.InfTit == tit);
+    return result;
+}
