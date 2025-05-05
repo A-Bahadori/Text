@@ -8,11 +8,21 @@ public class PerformanceTracker
     private Dictionary<string, TimeSpan> sectionTimes;
     private string currentSection;
     private DateTime sectionStartTime;
+    private string name; // نام زمان‌سنج
     
-    public PerformanceTracker()
+    // سازنده با نام اختیاری
+    public PerformanceTracker(string name = "Default")
     {
         totalStopwatch = new Stopwatch();
         sectionTimes = new Dictionary<string, TimeSpan>();
+        this.name = name;
+    }
+    
+    // دریافت و تنظیم نام
+    public string Name
+    {
+        get { return name; }
+        set { name = value; }
     }
     
     public void Start()
@@ -64,7 +74,7 @@ public class PerformanceTracker
     
     public void PrintResults()
     {
-        Console.WriteLine("=== نتایج اندازه‌گیری عملکرد ===");
+        Console.WriteLine($"=== نتایج اندازه‌گیری عملکرد [{name}] ===");
         foreach (var section in sectionTimes)
         {
             PrintFormattedTime(section.Key, section.Value);
@@ -107,7 +117,7 @@ public class PerformanceTracker
     // نمایش نتایج با فرمت دلخواه
     public void PrintResultsAs(TimeFormat format)
     {
-        Console.WriteLine("=== نتایج اندازه‌گیری عملکرد ===");
+        Console.WriteLine($"=== نتایج اندازه‌گیری عملکرد [{name}] ===");
         foreach (var section in sectionTimes)
         {
             PrintTimeInFormat(section.Key, section.Value, format);
@@ -158,46 +168,29 @@ class Program
 {
     static void Main(string[] args)
     {
-        PerformanceTracker tracker = new PerformanceTracker();
+        // مثال 1: استفاده از یک نمونه Performance Tracker با نام
+        Console.WriteLine("مثال 1: استفاده از یک نمونه زمان‌سنج با نام");
+        PerformanceTracker tracker = new PerformanceTracker("پردازش اصلی");
         tracker.Start();
         
-        // بخش اول
         tracker.StartSection("مرحله آماده‌سازی داده‌ها");
         ProcessSection1();
         tracker.EndSection();
         
-        // بخش دوم
         tracker.StartSection("مرحله پردازش");
         ProcessSection2();
         tracker.EndSection();
         
-        // بخش سوم
         tracker.StartSection("مرحله ذخیره‌سازی");
         ProcessSection3();
         tracker.EndSection();
         
-        // بخش چهارم (که چندین بار فراخوانی می‌شود)
-        for (int i = 0; i < 3; i++)
-        {
-            tracker.StartSection("بخش تکرارشونده");
-            ProcessRepeatedSection();
-            tracker.EndSection();
-        }
-        
         tracker.Stop();
-        
-        // نمایش نتایج با فرمت‌های مختلف
-        Console.WriteLine("\n=== نمایش نتایج با فرمت خودکار ===");
         tracker.PrintResults();
         
-        Console.WriteLine("\n=== نمایش نتایج به صورت ثانیه ===");
-        tracker.PrintResultsAs(TimeFormat.Seconds);
-        
-        Console.WriteLine("\n=== نمایش نتایج به صورت میلی‌ثانیه ===");
-        tracker.PrintResultsAs(TimeFormat.Milliseconds);
-        
-        Console.WriteLine("\n=== نمایش نتایج به صورت میکروثانیه ===");
-        tracker.PrintResultsAs(TimeFormat.Microseconds);
+        // مثال 2: استفاده از چندین نمونه Performance Tracker
+        Console.WriteLine("\nمثال 2: استفاده از چندین نمونه زمان‌سنج در کلاس‌های مختلف");
+        SimulateMultipleClasses();
     }
     
     static void ProcessSection1()
@@ -215,8 +208,54 @@ class Program
         System.Threading.Thread.Sleep(150);
     }
     
-    static void ProcessRepeatedSection()
+    static void SimulateMultipleClasses()
     {
+        // شبیه‌سازی استفاده از چندین نمونه زمان‌سنج در کلاس‌های مختلف
+        PerformanceTracker dataProcessorTracker = new PerformanceTracker("پردازشگر داده");
+        PerformanceTracker fileManagerTracker = new PerformanceTracker("مدیریت فایل");
+        PerformanceTracker calculationTracker = new PerformanceTracker("محاسبات");
+        
+        // شبیه‌سازی استفاده در کلاس پردازشگر داده
+        dataProcessorTracker.Start();
+        dataProcessorTracker.StartSection("خواندن داده");
+        System.Threading.Thread.Sleep(80);
+        dataProcessorTracker.EndSection();
+        
+        dataProcessorTracker.StartSection("پردازش داده");
+        System.Threading.Thread.Sleep(120);
+        dataProcessorTracker.EndSection();
+        dataProcessorTracker.Stop();
+        
+        // شبیه‌سازی استفاده در کلاس مدیریت فایل
+        fileManagerTracker.Start();
+        fileManagerTracker.StartSection("جستجوی فایل");
         System.Threading.Thread.Sleep(50);
+        fileManagerTracker.EndSection();
+        
+        fileManagerTracker.StartSection("نوشتن فایل");
+        System.Threading.Thread.Sleep(100);
+        fileManagerTracker.EndSection();
+        fileManagerTracker.Stop();
+        
+        // شبیه‌سازی استفاده در کلاس محاسبات
+        calculationTracker.Start();
+        calculationTracker.StartSection("محاسبه میانگین");
+        System.Threading.Thread.Sleep(30);
+        calculationTracker.EndSection();
+        
+        calculationTracker.StartSection("محاسبه انحراف معیار");
+        System.Threading.Thread.Sleep(40);
+        calculationTracker.EndSection();
+        calculationTracker.Stop();
+        
+        // نمایش نتایج همه زمان‌سنج‌ها
+        dataProcessorTracker.PrintResults();
+        fileManagerTracker.PrintResults();
+        calculationTracker.PrintResults();
+        
+        // نمایش نتایج با فرمت‌های مختلف برای یکی از زمان‌سنج‌ها
+        Console.WriteLine("\n=== نمایش نتایج محاسبات با فرمت‌های مختلف ===");
+        calculationTracker.PrintResultsAs(TimeFormat.Milliseconds);
+        calculationTracker.PrintResultsAs(TimeFormat.Microseconds);
     }
 }
