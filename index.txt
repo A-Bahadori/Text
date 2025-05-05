@@ -1,20 +1,142 @@
-USE YourDatabase;
-EXEC sp_change_users_login 'auto_fix', 'ray';
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 
-=======================================================
-
-public RaySysSpc FindValueBySysbyTit(string sys, string tit)
+public class PerformanceTracker
 {
-    var allRecords = FindAll().ToList(); // همه رکوردها را دریافت کنید
-    Console.WriteLine($"تعداد کل رکوردها: {allRecords.Count}"); // تعداد رکوردها را چاپ کنید
+    private Stopwatch totalStopwatch;
+    private Dictionary<string, TimeSpan> sectionTimes;
+    private string currentSection;
+    private DateTime sectionStartTime;
     
-    // مقادیر موجود را بررسی کنید
-    foreach (var record in allRecords)
+    public PerformanceTracker()
     {
-        Console.WriteLine($"Id.RaySys: '{record.Id.RaySys}', Id.InfTit: '{record.Id.InfTit}'");
+        totalStopwatch = new Stopwatch();
+        sectionTimes = new Dictionary<string, TimeSpan>();
     }
     
-    // سپس جستجو را انجام دهید
-    var result = allRecords.FirstOrDefault(x => x.Id.RaySys == sys && x.Id.InfTit == tit);
-    return result;
+    public void Start()
+    {
+        totalStopwatch.Start();
+    }
+    
+    public void StartSection(string sectionName)
+    {
+        // اگر بخش قبلی در حال اجراست، آن را به پایان برسان
+        if (!string.IsNullOrEmpty(currentSection))
+        {
+            EndSection();
+        }
+        
+        currentSection = sectionName;
+        sectionStartTime = DateTime.Now;
+        
+        // اگر این بخش قبلاً اندازه‌گیری شده، مقدار آن را صفر کن
+        if (sectionTimes.ContainsKey(sectionName))
+        {
+            sectionTimes[sectionName] = TimeSpan.Zero;
+        }
+        else
+        {
+            sectionTimes.Add(sectionName, TimeSpan.Zero);
+        }
+    }
+    
+    public void EndSection()
+    {
+        if (string.IsNullOrEmpty(currentSection))
+            return;
+            
+        TimeSpan elapsed = DateTime.Now - sectionStartTime;
+        sectionTimes[currentSection] += elapsed;
+        currentSection = null;
+    }
+    
+    public void Stop()
+    {
+        if (!string.IsNullOrEmpty(currentSection))
+        {
+            EndSection();
+        }
+        
+        totalStopwatch.Stop();
+    }
+    
+    public void PrintResults()
+    {
+        Console.WriteLine("=== نتایج اندازه‌گیری عملکرد ===");
+        foreach (var section in sectionTimes)
+        {
+            Console.WriteLine($"{section.Key}: {section.Value.TotalMilliseconds:F2} میلی‌ثانیه");
+        }
+        Console.WriteLine($"زمان کل: {totalStopwatch.Elapsed.TotalMilliseconds:F2} میلی‌ثانیه");
+    }
+    
+    // گرفتن نتایج به صورت دیکشنری
+    public Dictionary<string, TimeSpan> GetResults()
+    {
+        return new Dictionary<string, TimeSpan>(sectionTimes);
+    }
+    
+    // گرفتن زمان کل
+    public TimeSpan GetTotalTime()
+    {
+        return totalStopwatch.Elapsed;
+    }
+}
+
+// مثال استفاده
+class Program
+{
+    static void Main(string[] args)
+    {
+        PerformanceTracker tracker = new PerformanceTracker();
+        tracker.Start();
+        
+        // بخش اول
+        tracker.StartSection("مرحله آماده‌سازی داده‌ها");
+        ProcessSection1();
+        tracker.EndSection();
+        
+        // بخش دوم
+        tracker.StartSection("مرحله پردازش");
+        ProcessSection2();
+        tracker.EndSection();
+        
+        // بخش سوم
+        tracker.StartSection("مرحله ذخیره‌سازی");
+        ProcessSection3();
+        tracker.EndSection();
+        
+        // بخش چهارم (که چندین بار فراخوانی می‌شود)
+        for (int i = 0; i < 3; i++)
+        {
+            tracker.StartSection("بخش تکرارشونده");
+            ProcessRepeatedSection();
+            tracker.EndSection();
+        }
+        
+        tracker.Stop();
+        tracker.PrintResults();
+    }
+    
+    static void ProcessSection1()
+    {
+        System.Threading.Thread.Sleep(100);
+    }
+    
+    static void ProcessSection2()
+    {
+        System.Threading.Thread.Sleep(200);
+    }
+    
+    static void ProcessSection3()
+    {
+        System.Threading.Thread.Sleep(150);
+    }
+    
+    static void ProcessRepeatedSection()
+    {
+        System.Threading.Thread.Sleep(50);
+    }
 }
