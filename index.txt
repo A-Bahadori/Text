@@ -67,9 +67,29 @@ public class PerformanceTracker
         Console.WriteLine("=== نتایج اندازه‌گیری عملکرد ===");
         foreach (var section in sectionTimes)
         {
-            Console.WriteLine($"{section.Key}: {section.Value.TotalMilliseconds:F2} میلی‌ثانیه");
+            PrintFormattedTime(section.Key, section.Value);
         }
-        Console.WriteLine($"زمان کل: {totalStopwatch.Elapsed.TotalMilliseconds:F2} میلی‌ثانیه");
+        PrintFormattedTime("زمان کل", totalStopwatch.Elapsed);
+    }
+    
+    private void PrintFormattedTime(string sectionName, TimeSpan time)
+    {
+        if (time.TotalSeconds < 0.01) // کمتر از 10 میلی‌ثانیه
+        {
+            Console.WriteLine($"{sectionName}: {time.TotalMilliseconds:F3} میلی‌ثانیه");
+        }
+        else if (time.TotalMinutes < 1) // کمتر از یک دقیقه
+        {
+            Console.WriteLine($"{sectionName}: {time.TotalSeconds:F3} ثانیه");
+        }
+        else if (time.TotalHours < 1) // کمتر از یک ساعت
+        {
+            Console.WriteLine($"{sectionName}: {time.Minutes} دقیقه و {time.Seconds} ثانیه");
+        }
+        else // بیشتر از یک ساعت
+        {
+            Console.WriteLine($"{sectionName}: {time.Hours} ساعت و {time.Minutes} دقیقه و {time.Seconds} ثانیه");
+        }
     }
     
     // گرفتن نتایج به صورت دیکشنری
@@ -83,6 +103,54 @@ public class PerformanceTracker
     {
         return totalStopwatch.Elapsed;
     }
+    
+    // نمایش نتایج با فرمت دلخواه
+    public void PrintResultsAs(TimeFormat format)
+    {
+        Console.WriteLine("=== نتایج اندازه‌گیری عملکرد ===");
+        foreach (var section in sectionTimes)
+        {
+            PrintTimeInFormat(section.Key, section.Value, format);
+        }
+        PrintTimeInFormat("زمان کل", totalStopwatch.Elapsed, format);
+    }
+    
+    private void PrintTimeInFormat(string sectionName, TimeSpan time, TimeFormat format)
+    {
+        switch (format)
+        {
+            case TimeFormat.Nanoseconds:
+                Console.WriteLine($"{sectionName}: {time.TotalMilliseconds * 1000000:F0} نانوثانیه");
+                break;
+            case TimeFormat.Microseconds:
+                Console.WriteLine($"{sectionName}: {time.TotalMilliseconds * 1000:F0} میکروثانیه");
+                break;
+            case TimeFormat.Milliseconds:
+                Console.WriteLine($"{sectionName}: {time.TotalMilliseconds:F3} میلی‌ثانیه");
+                break;
+            case TimeFormat.Seconds:
+                Console.WriteLine($"{sectionName}: {time.TotalSeconds:F6} ثانیه");
+                break;
+            case TimeFormat.Minutes:
+                Console.WriteLine($"{sectionName}: {time.TotalMinutes:F6} دقیقه");
+                break;
+            case TimeFormat.Auto:
+            default:
+                PrintFormattedTime(sectionName, time);
+                break;
+        }
+    }
+}
+
+// انواع فرمت‌های زمانی
+public enum TimeFormat
+{
+    Auto,           // انتخاب خودکار بهترین واحد
+    Nanoseconds,    // نانوثانیه
+    Microseconds,   // میکروثانیه
+    Milliseconds,   // میلی‌ثانیه
+    Seconds,        // ثانیه
+    Minutes         // دقیقه
 }
 
 // مثال استفاده
@@ -117,7 +185,19 @@ class Program
         }
         
         tracker.Stop();
+        
+        // نمایش نتایج با فرمت‌های مختلف
+        Console.WriteLine("\n=== نمایش نتایج با فرمت خودکار ===");
         tracker.PrintResults();
+        
+        Console.WriteLine("\n=== نمایش نتایج به صورت ثانیه ===");
+        tracker.PrintResultsAs(TimeFormat.Seconds);
+        
+        Console.WriteLine("\n=== نمایش نتایج به صورت میلی‌ثانیه ===");
+        tracker.PrintResultsAs(TimeFormat.Milliseconds);
+        
+        Console.WriteLine("\n=== نمایش نتایج به صورت میکروثانیه ===");
+        tracker.PrintResultsAs(TimeFormat.Microseconds);
     }
     
     static void ProcessSection1()
