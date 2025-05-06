@@ -5,15 +5,16 @@ using System.Diagnostics;
 public class PerformanceTracker
 {
     private Stopwatch totalStopwatch;
+    private Dictionary<string, Stopwatch> sectionStopwatches;
     private Dictionary<string, TimeSpan> sectionTimes;
     private string currentSection;
-    private DateTime sectionStartTime;
     private string name; // Timer name
 
     // Constructor with optional name
     public PerformanceTracker(string name = "Default")
     {
         totalStopwatch = new Stopwatch();
+        sectionStopwatches = new Dictionary<string, Stopwatch>();
         sectionTimes = new Dictionary<string, TimeSpan>();
         this.name = name;
     }
@@ -39,17 +40,16 @@ public class PerformanceTracker
         }
 
         currentSection = sectionName;
-        sectionStartTime = DateTime.Now;
 
-        // If this section was previously measured, reset its time
-        if (sectionTimes.ContainsKey(sectionName))
+        // Create a new stopwatch for this section if it doesn't exist
+        if (!sectionStopwatches.ContainsKey(sectionName))
         {
+            sectionStopwatches[sectionName] = new Stopwatch();
             sectionTimes[sectionName] = TimeSpan.Zero;
         }
-        else
-        {
-            sectionTimes.Add(sectionName, TimeSpan.Zero);
-        }
+
+        // Start the stopwatch for this section
+        sectionStopwatches[sectionName].Start();
     }
 
     public void EndSection()
@@ -57,8 +57,16 @@ public class PerformanceTracker
         if (string.IsNullOrEmpty(currentSection))
             return;
 
-        TimeSpan elapsed = DateTime.Now - sectionStartTime;
-        sectionTimes[currentSection] += elapsed;
+        // Stop the current section's stopwatch
+        Stopwatch sectionStopwatch = sectionStopwatches[currentSection];
+        sectionStopwatch.Stop();
+
+        // Add elapsed time to the total for this section
+        sectionTimes[currentSection] += sectionStopwatch.Elapsed;
+
+        // Reset the stopwatch for future use of the same section
+        sectionStopwatch.Reset();
+        
         currentSection = null;
     }
 
