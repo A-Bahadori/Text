@@ -1,269 +1,126 @@
 using System;
-using System.Collections.Generic;
-using System.Diagnostics;
+using System.Threading;
+using Gurock.SmartInspect;
 
-public class PerformanceTracker
+namespace PerformanceMeasurementExample
 {
-    private Stopwatch totalStopwatch;
-    private Dictionary<string, Stopwatch> sectionStopwatches;
-    private Dictionary<string, TimeSpan> sectionTimes;
-    private string currentSection;
-    private string name; // Timer name
-
-    // Constructor with optional name
-    public PerformanceTracker(string name = "Default")
+    class Program
     {
-        totalStopwatch = new Stopwatch();
-        sectionStopwatches = new Dictionary<string, Stopwatch>();
-        sectionTimes = new Dictionary<string, TimeSpan>();
-        this.name = name;
-    }
+        // تعریف نمونه اصلی SmartInspect
+        static readonly SiAuto Si = new SiAuto();
 
-    // Get and set the name
-    public string Name
-    {
-        get { return name; }
-        set { name = value; }
-    }
-
-    public void Start()
-    {
-        totalStopwatch.Start();
-    }
-
-    public void StartSection(string sectionName)
-    {
-        // If a previous section is running, end it
-        if (!string.IsNullOrEmpty(currentSection))
+        static void Main(string[] args)
         {
-            EndSection();
+            // پیکربندی SmartInspect
+            Si.Connections = "tcp(host=localhost,port=4228)";
+            Si.Enabled = true;
+            Si.AppName = "PerformanceTest";
+
+            // ثبت پیام آغاز برنامه
+            Si.Main.LogMessage("برنامه آغاز شد");
+
+            try
+            {
+                // اندازه‌گیری زمان متد اول
+                MeasureMethodA();
+
+                // اندازه‌گیری زمان متد دوم
+                MeasureMethodB();
+
+                // اندازه‌گیری زمان بلوک کد خاص
+                MeasureCodeBlock();
+
+                // مثال استفاده از Watch برای اندازه‌گیری زمان
+                UsingStopWatch();
+            }
+            catch (Exception ex)
+            {
+                // ثبت خطا
+                Si.Main.LogException("خطایی رخ داد", ex);
+            }
+            finally
+            {
+                // ثبت پیام پایان برنامه
+                Si.Main.LogMessage("برنامه پایان یافت");
+                
+                // بستن اتصال SmartInspect
+                Si.Dispose();
+            }
+
+            Console.WriteLine("برای خروج، کلیدی را فشار دهید...");
+            Console.ReadKey();
         }
 
-        currentSection = sectionName;
-
-        // Create a new stopwatch for this section if it doesn't exist
-        if (!sectionStopwatches.ContainsKey(sectionName))
+        // روش 1: استفاده از LogMethodEntry و LogMethodExit
+        static void MeasureMethodA()
         {
-            sectionStopwatches[sectionName] = new Stopwatch();
-            sectionTimes[sectionName] = TimeSpan.Zero;
+            // ثبت ورود به متد - زمان شروع را ثبت می‌کند
+            Si.Main.LogMethodEntry();
+
+            // شبیه‌سازی عملیاتی که زمان می‌برد
+            Console.WriteLine("اجرای متد A...");
+            Thread.Sleep(500); // شبیه‌سازی کار به مدت 500 میلی‌ثانیه
+
+            // ثبت خروج از متد - زمان کل صرف شده را محاسبه و ثبت می‌کند
+            Si.Main.LogMethodExit();
         }
 
-        // Start the stopwatch for this section
-        sectionStopwatches[sectionName].Start();
-    }
-
-    public void EndSection()
-    {
-        if (string.IsNullOrEmpty(currentSection))
-            return;
-
-        // Stop the current section's stopwatch
-        Stopwatch sectionStopwatch = sectionStopwatches[currentSection];
-        sectionStopwatch.Stop();
-
-        // Add elapsed time to the total for this section
-        sectionTimes[currentSection] += sectionStopwatch.Elapsed;
-
-        // Reset the stopwatch for future use of the same section
-        sectionStopwatch.Reset();
-        
-        currentSection = null;
-    }
-
-    public void Stop()
-    {
-        if (!string.IsNullOrEmpty(currentSection))
+        // روش 2: استفاده از LogProcessFlow
+        static void MeasureMethodB()
         {
-            EndSection();
+            using (var process = Si.Main.LogProcessFlow("متد B"))
+            {
+                Console.WriteLine("اجرای متد B...");
+                Thread.Sleep(800); // شبیه‌سازی کار به مدت 800 میلی‌ثانیه
+                
+                // اختیاری: می‌توانید نتیجه را هم ثبت کنید
+                process.Result = "عملیات با موفقیت انجام شد";
+            } // زمان پایان و مدت زمان اجرا به طور خودکار محاسبه می‌شود
         }
 
-        totalStopwatch.Stop();
-    }
-
-    public void PrintResults()
-    {
-        Console.WriteLine($"=== Performance Measurement Results [{name}] ===");
-        foreach (var section in sectionTimes)
+        // روش 3: اندازه‌گیری بلوک‌های خاص کد
+        static void MeasureCodeBlock()
         {
-            PrintFormattedTime(section.Key, section.Value);
+            Si.Main.LogMessage("شروع بلوک کد خاص");
+            
+            // شروع زمان‌سنج
+            var watch = Si.Main.EnterWatchedBlock("بلوک کد زمان‌بر");
+            
+            Console.WriteLine("اجرای بلوک کد خاص...");
+            
+            // شبیه‌سازی بخش اول
+            Thread.Sleep(200);
+            Si.Main.LogVerbose("بخش 1 کامل شد");
+            
+            // شبیه‌سازی بخش دوم
+            Thread.Sleep(300);
+            Si.Main.LogVerbose("بخش 2 کامل شد");
+            
+            // پایان زمان‌سنج و ثبت نتایج
+            watch.Leave();
+            
+            Si.Main.LogMessage("پایان بلوک کد خاص");
         }
-        PrintFormattedTime("Total Time", totalStopwatch.Elapsed);
-    }
 
-    private void PrintFormattedTime(string sectionName, TimeSpan time)
-    {
-        if (time.TotalSeconds < 0.01) // less than 10 milliseconds
+        // روش 4: استفاده از StopWatch برای اندازه‌گیری دقیق‌تر
+        static void UsingStopWatch()
         {
-            Console.WriteLine($"{sectionName}: {time.TotalMilliseconds:F3} milliseconds");
+            // شروع زمان‌سنج
+            var stopwatch = Si.Main.LogEnterStopWatch("اندازه‌گیری با StopWatch");
+            
+            Console.WriteLine("اجرای کد با StopWatch...");
+            
+            // شبیه‌سازی چند عملیات
+            for (int i = 0; i < 3; i++)
+            {
+                Thread.Sleep(100);
+                
+                // ثبت نقطه عطف (checkpoint) - زمان میانی را ثبت می‌کند
+                stopwatch.LogCheckpoint($"مرحله {i+1} کامل شد");
+            }
+            
+            // پایان زمان‌سنج و ثبت زمان کل
+            stopwatch.LogExit();
         }
-        else if (time.TotalMinutes < 1) // less than one minute
-        {
-            Console.WriteLine($"{sectionName}: {time.TotalSeconds:F3} seconds");
-        }
-        else if (time.TotalHours < 1) // less than one hour
-        {
-            Console.WriteLine($"{sectionName}: {time.Minutes} minutes and {time.Seconds} seconds");
-        }
-        else // more than one hour
-        {
-            Console.WriteLine($"{sectionName}: {time.Hours} hours, {time.Minutes} minutes, and {time.Seconds} seconds");
-        }
-    }
-
-    // Retrieve results as a dictionary
-    public Dictionary<string, TimeSpan> GetResults()
-    {
-        return new Dictionary<string, TimeSpan>(sectionTimes);
-    }
-
-    // Retrieve total time
-    public TimeSpan GetTotalTime()
-    {
-        return totalStopwatch.Elapsed;
-    }
-
-    // Display results in a specified format
-    public void PrintResultsAs(TimeFormat format)
-    {
-        Console.WriteLine($"=== Performance Measurement Results [{name}] ===");
-        foreach (var section in sectionTimes)
-        {
-            PrintTimeInFormat(section.Key, section.Value, format);
-        }
-        PrintTimeInFormat("Total Time", totalStopwatch.Elapsed, format);
-    }
-
-    private void PrintTimeInFormat(string sectionName, TimeSpan time, TimeFormat format)
-    {
-        switch (format)
-        {
-            case TimeFormat.Nanoseconds:
-                Console.WriteLine($"{sectionName}: {time.TotalMilliseconds * 1_000_000:F0} nanoseconds");
-                break;
-            case TimeFormat.Microseconds:
-                Console.WriteLine($"{sectionName}: {time.TotalMilliseconds * 1_000:F0} microseconds");
-                break;
-            case TimeFormat.Milliseconds:
-                Console.WriteLine($"{sectionName}: {time.TotalMilliseconds:F3} milliseconds");
-                break;
-            case TimeFormat.Seconds:
-                Console.WriteLine($"{sectionName}: {time.TotalSeconds:F6} seconds");
-                break;
-            case TimeFormat.Minutes:
-                Console.WriteLine($"{sectionName}: {time.TotalMinutes:F6} minutes");
-                break;
-            case TimeFormat.Auto:
-            default:
-                PrintFormattedTime(sectionName, time);
-                break;
-        }
-    }
-}
-
-// Time format types
-public enum TimeFormat
-{
-    Auto,           // Auto-select the best unit
-    Nanoseconds,    // Nanoseconds
-    Microseconds,   // Microseconds
-    Milliseconds,   // Milliseconds
-    Seconds,        // Seconds
-    Minutes         // Minutes
-}
-
-// Usage example
-class Program
-{
-    static void Main(string[] args)
-    {
-        // Example 1: Using a named Performance Tracker
-        Console.WriteLine("Example 1: Using a named Performance Tracker");
-        PerformanceTracker tracker = new PerformanceTracker("Main Processing");
-        tracker.Start();
-
-        tracker.StartSection("Data Preparation Stage");
-        ProcessSection1();
-        tracker.EndSection();
-
-        tracker.StartSection("Processing Stage");
-        ProcessSection2();
-        tracker.EndSection();
-
-        tracker.StartSection("Storage Stage");
-        ProcessSection3();
-        tracker.EndSection();
-
-        tracker.Stop();
-        tracker.PrintResults();
-
-        // Example 2: Using multiple Performance Tracker instances in different classes
-        Console.WriteLine("\nExample 2: Using multiple Performance Tracker instances in different classes");
-        SimulateMultipleClasses();
-    }
-
-    static void ProcessSection1()
-    {
-        System.Threading.Thread.Sleep(100);
-    }
-
-    static void ProcessSection2()
-    {
-        System.Threading.Thread.Sleep(200);
-    }
-
-    static void ProcessSection3()
-    {
-        System.Threading.Thread.Sleep(150);
-    }
-
-    static void SimulateMultipleClasses()
-    {
-        // Simulate using multiple tracker instances across classes
-        PerformanceTracker dataProcessorTracker = new PerformanceTracker("Data Processor");
-        PerformanceTracker fileManagerTracker = new PerformanceTracker("File Manager");
-        PerformanceTracker calculationTracker = new PerformanceTracker("Calculations");
-
-        // Data Processor class simulation
-        dataProcessorTracker.Start();
-        dataProcessorTracker.StartSection("Reading Data");
-        System.Threading.Thread.Sleep(80);
-        dataProcessorTracker.EndSection();
-
-        dataProcessorTracker.StartSection("Processing Data");
-        System.Threading.Thread.Sleep(120);
-        dataProcessorTracker.EndSection();
-        dataProcessorTracker.Stop();
-
-        // File Manager class simulation
-        fileManagerTracker.Start();
-        fileManagerTracker.StartSection("File Search");
-        System.Threading.Thread.Sleep(50);
-        fileManagerTracker.EndSection();
-
-        fileManagerTracker.StartSection("File Write");
-        System.Threading.Thread.Sleep(100);
-        fileManagerTracker.EndSection();
-        fileManagerTracker.Stop();
-
-        // Calculations class simulation
-        calculationTracker.Start();
-        calculationTracker.StartSection("Calculating Average");
-        System.Threading.Thread.Sleep(30);
-        calculationTracker.EndSection();
-
-        calculationTracker.StartSection("Calculating Standard Deviation");
-        System.Threading.Thread.Sleep(40);
-        calculationTracker.EndSection();
-        calculationTracker.Stop();
-
-        // Display all tracker results
-        dataProcessorTracker.PrintResults();
-        fileManagerTracker.PrintResults();
-        calculationTracker.PrintResults();
-
-        // Display calculation results in various formats
-        Console.WriteLine("\n=== Displaying calculation results in various formats ===");
-        calculationTracker.PrintResultsAs(TimeFormat.Milliseconds);
-        calculationTracker.PrintResultsAs(TimeFormat.Microseconds);
     }
 }
