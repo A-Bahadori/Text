@@ -1,24 +1,20 @@
 using System;
 using System.Threading;
 using Gurock.SmartInspect;
-using Si = Gurock.SmartInspect.SiAuto;
 
 namespace PerformanceMeasurementExample
 {
     class Program
     {
-        // استفاده از نمونه استاتیک از پیش تعریف شده SmartInspect
-        // SiAuto.Si یک نمونه استاتیک است که توسط خود کتابخانه ارائه می‌شود
-
         static void Main(string[] args)
         {
             // پیکربندی SmartInspect
-            Si.Si.Connections = "tcp(host=localhost,port=4228)";
-            Si.Si.Enabled = true;
-            Si.Si.AppName = "PerformanceTest";
+            SiAuto.Si.Connections = "tcp(host=localhost,port=4228)";
+            SiAuto.Si.Enabled = true;
+            SiAuto.Si.AppName = "PerformanceTest";
 
             // ثبت پیام آغاز برنامه
-            Si.Main.LogMessage("برنامه آغاز شد");
+            SiAuto.Main.LogMessage("برنامه آغاز شد");
 
             try
             {
@@ -37,15 +33,15 @@ namespace PerformanceMeasurementExample
             catch (Exception ex)
             {
                 // ثبت خطا
-                Si.Main.LogException("خطایی رخ داد", ex);
+                SiAuto.Main.LogException("خطایی رخ داد", ex);
             }
             finally
             {
                 // ثبت پیام پایان برنامه
-                Si.Main.LogMessage("برنامه پایان یافت");
+                SiAuto.Main.LogMessage("برنامه پایان یافت");
                 
                 // بستن اتصال SmartInspect
-                Si.Si.Dispose();
+                SiAuto.Si.Dispose();
             }
 
             Console.WriteLine("برای خروج، کلیدی را فشار دهید...");
@@ -56,20 +52,20 @@ namespace PerformanceMeasurementExample
         static void MeasureMethodA()
         {
             // ثبت ورود به متد - زمان شروع را ثبت می‌کند
-            Si.Main.LogMethodEntry();
+            SiAuto.Main.LogMethodEntry();
 
             // شبیه‌سازی عملیاتی که زمان می‌برد
             Console.WriteLine("اجرای متد A...");
             Thread.Sleep(500); // شبیه‌سازی کار به مدت 500 میلی‌ثانیه
 
             // ثبت خروج از متد - زمان کل صرف شده را محاسبه و ثبت می‌کند
-            Si.Main.LogMethodExit();
+            SiAuto.Main.LogMethodExit();
         }
 
         // روش 2: استفاده از LogProcessFlow
         static void MeasureMethodB()
         {
-            using (var process = Si.Main.LogProcessFlow("متد B"))
+            using (var process = SiAuto.Main.LogProcessFlow("متد B"))
             {
                 Console.WriteLine("اجرای متد B...");
                 Thread.Sleep(800); // شبیه‌سازی کار به مدت 800 میلی‌ثانیه
@@ -82,32 +78,32 @@ namespace PerformanceMeasurementExample
         // روش 3: اندازه‌گیری بلوک‌های خاص کد
         static void MeasureCodeBlock()
         {
-            Si.Main.LogMessage("شروع بلوک کد خاص");
+            SiAuto.Main.LogMessage("شروع بلوک کد خاص");
             
             // شروع زمان‌سنج
-            var watch = Si.Main.EnterWatchedBlock("بلوک کد زمان‌بر");
+            var watch = SiAuto.Main.EnterWatchedBlock("بلوک کد زمان‌بر");
             
             Console.WriteLine("اجرای بلوک کد خاص...");
             
             // شبیه‌سازی بخش اول
             Thread.Sleep(200);
-            Si.Main.LogVerbose("بخش 1 کامل شد");
+            SiAuto.Main.LogVerbose("بخش 1 کامل شد");
             
             // شبیه‌سازی بخش دوم
             Thread.Sleep(300);
-            Si.Main.LogVerbose("بخش 2 کامل شد");
+            SiAuto.Main.LogVerbose("بخش 2 کامل شد");
             
             // پایان زمان‌سنج و ثبت نتایج
             watch.Leave();
             
-            Si.Main.LogMessage("پایان بلوک کد خاص");
+            SiAuto.Main.LogMessage("پایان بلوک کد خاص");
         }
 
         // روش 4: استفاده از StopWatch برای اندازه‌گیری دقیق‌تر
         static void UsingStopWatch()
         {
             // شروع زمان‌سنج
-            var stopwatch = Si.Main.LogEnterStopWatch("اندازه‌گیری با StopWatch");
+            var stopwatch = SiAuto.Main.LogEnterStopWatch("اندازه‌گیری با StopWatch");
             
             Console.WriteLine("اجرای کد با StopWatch...");
             
