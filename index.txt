@@ -1,123 +1,45 @@
-using System;
-using System.Threading;
-using Gurock.SmartInspect;
-
-namespace PerformanceMeasurementExample
-{
-    class Program
-    {
-        static void Main(string[] args)
-        {
-            // پیکربندی SmartInspect
-            SiAuto.Si.Connections = "tcp(host=localhost,port=4228)";
-            SiAuto.Si.Enabled = true;
-            SiAuto.Si.AppName = "PerformanceTest";
-
-            // ثبت پیام آغاز برنامه
-            SiAuto.Main.LogMessage("برنامه آغاز شد");
-
-            try
+try
             {
-                // اندازه‌گیری زمان متد اول
-                MeasureMethodA();
-
-                // اندازه‌گیری زمان متد دوم
-                MeasureMethodB();
-
-                // اندازه‌گیری زمان بلوک کد خاص
-                MeasureCodeBlock();
-
-                // مثال استفاده از Watch برای اندازه‌گیری زمان
-                UsingStopWatch();
+                Console.WriteLine("برنامه تست پردازش فایل Word");
+                
+                // مسیر فایل
+                Console.Write("مسیر فایل Word را وارد کنید: ");
+                string filePath = Console.ReadLine().Trim();
+                
+                if (!File.Exists(filePath))
+                {
+                    Console.WriteLine("فایل مورد نظر یافت نشد.");
+                    return;
+                }
+                
+                // ایجاد IFormObject
+                IFormObject formObject = CreateFormObjectFromFile(filePath);
+                
+                // ایجاد نمونه از کلاس پردازشگر
+                var processor = new YourProcessor(); // نام کلاسی که GetWordFormat در آن قرار دارد
+                
+                // تنظیم نوع خروجی (Word یا PDF)
+                Console.Write("آیا خروجی به صورت PDF باشد؟ (y/n): ");
+                bool isPdf = Console.ReadLine().Trim().ToLower() == "y";
+                
+                // فراخوانی متد پردازش
+                byte[] result = processor.GetWordFormat(formObject, Path.GetFileName(filePath), isPdf);
+                
+                // تعیین پسوند فایل خروجی
+                string extension = isPdf ? ".pdf" : ".docx";
+                
+                // تعیین مسیر خروجی
+                string outputPath = Path.Combine(
+                    Path.GetDirectoryName(filePath),
+                    Path.GetFileNameWithoutExtension(filePath) + "_output" + extension
+                );
+                
+                // ذخیره نتیجه
+                File.WriteAllBytes(outputPath, result);
+                
+                Console.WriteLine($"فایل با موفقیت پردازش شد و در مسیر زیر ذخیره شد:");
+                Console.WriteLine(outputPath);
             }
             catch (Exception ex)
             {
-                // ثبت خطا
-                SiAuto.Main.LogException("خطایی رخ داد", ex);
-            }
-            finally
-            {
-                // ثبت پیام پایان برنامه
-                SiAuto.Main.LogMessage("برنامه پایان یافت");
-                
-                // بستن اتصال SmartInspect
-                SiAuto.Si.Dispose();
-            }
-
-            Console.WriteLine("برای خروج، کلیدی را فشار دهید...");
-            Console.ReadKey();
-        }
-
-        // روش 1: استفاده از LogMethodEntry و LogMethodExit
-        static void MeasureMethodA()
-        {
-            // ثبت ورود به متد - زمان شروع را ثبت می‌کند
-            SiAuto.Main.LogMethodEntry();
-
-            // شبیه‌سازی عملیاتی که زمان می‌برد
-            Console.WriteLine("اجرای متد A...");
-            Thread.Sleep(500); // شبیه‌سازی کار به مدت 500 میلی‌ثانیه
-
-            // ثبت خروج از متد - زمان کل صرف شده را محاسبه و ثبت می‌کند
-            SiAuto.Main.LogMethodExit();
-        }
-
-        // روش 2: استفاده از LogProcessFlow
-        static void MeasureMethodB()
-        {
-            using (var process = SiAuto.Main.LogProcessFlow("متد B"))
-            {
-                Console.WriteLine("اجرای متد B...");
-                Thread.Sleep(800); // شبیه‌سازی کار به مدت 800 میلی‌ثانیه
-                
-                // اختیاری: می‌توانید نتیجه را هم ثبت کنید
-                process.Result = "عملیات با موفقیت انجام شد";
-            } // زمان پایان و مدت زمان اجرا به طور خودکار محاسبه می‌شود
-        }
-
-        // روش 3: اندازه‌گیری بلوک‌های خاص کد
-        static void MeasureCodeBlock()
-        {
-            SiAuto.Main.LogMessage("شروع بلوک کد خاص");
-            
-            // شروع زمان‌سنج
-            var watch = SiAuto.Main.EnterWatchedBlock("بلوک کد زمان‌بر");
-            
-            Console.WriteLine("اجرای بلوک کد خاص...");
-            
-            // شبیه‌سازی بخش اول
-            Thread.Sleep(200);
-            SiAuto.Main.LogVerbose("بخش 1 کامل شد");
-            
-            // شبیه‌سازی بخش دوم
-            Thread.Sleep(300);
-            SiAuto.Main.LogVerbose("بخش 2 کامل شد");
-            
-            // پایان زمان‌سنج و ثبت نتایج
-            watch.Leave();
-            
-            SiAuto.Main.LogMessage("پایان بلوک کد خاص");
-        }
-
-        // روش 4: استفاده از StopWatch برای اندازه‌گیری دقیق‌تر
-        static void UsingStopWatch()
-        {
-            // شروع زمان‌سنج
-            var stopwatch = SiAuto.Main.LogEnterStopWatch("اندازه‌گیری با StopWatch");
-            
-            Console.WriteLine("اجرای کد با StopWatch...");
-            
-            // شبیه‌سازی چند عملیات
-            for (int i = 0; i < 3; i++)
-            {
-                Thread.Sleep(100);
-                
-                // ثبت نقطه عطف (checkpoint) - زمان میانی را ثبت می‌کند
-                stopwatch.LogCheckpoint($"مرحله {i+1} کامل شد");
-            }
-            
-            // پایان زمان‌سنج و ثبت زمان کل
-            stopwatch.LogExit();
-        }
-    }
-}
+                Console.WriteLine($"خطا
