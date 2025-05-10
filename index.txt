@@ -1,45 +1,65 @@
 try
-            {
-                Console.WriteLine("برنامه تست پردازش فایل Word");
-                
-                // مسیر فایل
-                Console.Write("مسیر فایل Word را وارد کنید: ");
-                string filePath = Console.ReadLine().Trim();
-                
-                if (!File.Exists(filePath))
-                {
-                    Console.WriteLine("فایل مورد نظر یافت نشد.");
-                    return;
-                }
-                
-                // ایجاد IFormObject
-                IFormObject formObject = CreateFormObjectFromFile(filePath);
-                
-                // ایجاد نمونه از کلاس پردازشگر
-                var processor = new YourProcessor(); // نام کلاسی که GetWordFormat در آن قرار دارد
-                
-                // تنظیم نوع خروجی (Word یا PDF)
-                Console.Write("آیا خروجی به صورت PDF باشد؟ (y/n): ");
-                bool isPdf = Console.ReadLine().Trim().ToLower() == "y";
-                
-                // فراخوانی متد پردازش
-                byte[] result = processor.GetWordFormat(formObject, Path.GetFileName(filePath), isPdf);
-                
-                // تعیین پسوند فایل خروجی
-                string extension = isPdf ? ".pdf" : ".docx";
-                
-                // تعیین مسیر خروجی
-                string outputPath = Path.Combine(
-                    Path.GetDirectoryName(filePath),
-                    Path.GetFileNameWithoutExtension(filePath) + "_output" + extension
-                );
-                
-                // ذخیره نتیجه
-                File.WriteAllBytes(outputPath, result);
-                
-                Console.WriteLine($"فایل با موفقیت پردازش شد و در مسیر زیر ذخیره شد:");
-                Console.WriteLine(outputPath);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"خطا
+{
+    Console.WriteLine("Word File Processing Test Program");
+    
+    // File path
+    Console.Write("Enter the Word file path: ");
+    string filePath = Console.ReadLine().Trim();
+    
+    if (!File.Exists(filePath))
+    {
+        Console.WriteLine("The specified file was not found.");
+        return;
+    }
+    
+    // Create IFormObject
+    IFormObject formObject = CreateFormObjectFromFile(filePath);
+    
+    // Instantiate the processor class
+    var processor = new YourProcessor(); // The class containing GetWordFormat
+    
+    // Set output type (Word or PDF)
+    Console.Write("Should the output be PDF? (y/n): ");
+    bool isPdf = Console.ReadLine().Trim().ToLower() == "y";
+    
+    // Call the processing method
+    byte[] result = processor.GetWordFormat(formObject, Path.GetFileName(filePath), isPdf);
+    
+    // Determine output file extension
+    string extension = isPdf ? ".pdf" : ".docx";
+    
+    // Determine output path
+    string outputPath = Path.Combine(
+        Path.GetDirectoryName(filePath),
+        Path.GetFileNameWithoutExtension(filePath) + "_output" + extension
+    );
+    
+    // Save the result
+    File.WriteAllBytes(outputPath, result);
+    
+    Console.WriteLine("File processed successfully and saved to:");
+    Console.WriteLine(outputPath);
+}
+catch (Exception ex)
+{
+    Console.WriteLine($"Error: {ex.Message}");
+    Console.WriteLine(ex.StackTrace);
+}
+
+Console.WriteLine("Press any key to exit.");
+Console.ReadKey();
+
+// Function to create an IFormObject from a file
+static IFormObject CreateFormObjectFromFile(string filePath)
+{
+    // Depending on the IFormObject implementation, this will vary
+    // Example implementation:
+    byte[] fileBytes = File.ReadAllBytes(filePath);
+    
+    // Assume FormObjectImplementation implements IFormObject
+    var formObject = new FormObjectImplementation();
+    formObject.SetFileContent(fileBytes);
+    formObject.SetFileName(Path.GetFileName(filePath));
+    
+    return formObject;
+}
