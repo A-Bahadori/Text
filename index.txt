@@ -1,1 +1,8 @@
- (SELECT * FROM OPENROWSET(BULK N'C:\path\to\NastaliqFontTest.docx', SINGLE_BLOB) AS FileData),
+doc.Range.Replace(Regex.Escape(p.Value), new ReplaceEvaluator(findAndInsertText(entVal.ToString().Replace("\r", "\n"))), false);
+
+doc.Range.Replace(new Regex(Regex.Escape(p.Value)), new ReplaceEvaluator(findAndInsertText(entVal.ToString().Replace("\r", "\n"))), new FindReplaceOptions { Direction = FindReplaceDirection.Forward });
+
+FindReplaceOptions options = new FindReplaceOptions();
+options.Direction = FindReplaceDirection.Forward;
+options.ReplacingCallback = new ReplaceEvaluator(findAndInsertText(entVal.ToString().Replace("\r", "\n")));
+doc.Range.Replace(Regex.Escape(p.Value), "", options);
