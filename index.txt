@@ -1,40 +1,121 @@
-// ایجاد شیء گزینه‌های جستجو و جایگزینی
-var options = new Aspose.Words.Replacing.FindReplaceOptions();
-
-// تنظیم ReplaceEvaluator مورد نظر
-options.ReplacingCallback = new ReplaceEvaluatorFindAndInsertText(entVal.ToString().Replace("\r", "\n"));
-
-// اگر قبلاً از پارامتر boolean برای تنظیم match case استفاده می‌کردید
-options.MatchCase = false; // یا true بسته به نیاز شما
-
-// استفاده از الگوی regex به عنوان یک رشته
-doc.Range.Replace(Regex.Escape(p.Value), "", options);
-=============================
-
-// ایجاد شیء گزینه‌های جستجو و جایگزینی
-var options = new Aspose.Words.Replacing.FindReplaceOptions();
-options.ReplacingCallback = new ReplaceEvaluatorFindAndInsertText(entVal.ToString().Replace("\r", "\n"));
-options.MatchCase = false; // یا true بسته به نیاز شما
-options.UseRegularExpressions = true; // فعال کردن استفاده از Regex
-
-// استفاده از الگوی regex به عنوان یک رشته
-doc.Range.Replace(Regex.Escape(p.Value), "", options);
-==========================
-
-public class ReplaceEvaluatorFindAndInsertText : Aspose.Words.Replacing.IReplacingCallback
+public byte[] GetWordFormat(IFormObject formObject, string fileName, bool isPdf = false)
 {
-    private string _replaceText;
-
-    public ReplaceEvaluatorFindAndInsertText(string replaceText)
+    var path = WordBilding(formObject, fileName);
+    var Ms = new MemoryStream();
+    try
     {
-        _replaceText = replaceText;
+        var filePath = Path.Combine(path, fileName);
+        var wordDoc = new Aspose.Words.Document(filePath);
+        
+        // تنظیم جهت راست به چپ برای اسناد فارسی
+        wordDoc.LayoutOptions.TextShaperFactory = Aspose.Words.Shaping.HarfBuzz.HarfBuzzTextShaperFactory.Instance;
+        
+        var txt = "";
+        foreach (Shape sh in wordDoc.GetChildNodes(NodeType.Shape, true))
+        {
+            txt = sh.GetText();
+            if (txt.Contains("DisplayBarcodeQR"))
+            {
+                var txtparam = txt.Split(new string[] { "DisplayBarcodeQR=" }, StringSplitOptions.None);
+
+                var _pixelsPerModule = sh.Height < sh.Width ? sh.Height : sh.Width;
+
+                QRCodeGenerator qrGenerator = new QRCodeGenerator();
+                QRCodeData qrCodeData = qrGenerator.CreateQrCode(txtparam[1], QRCodeGenerator.ECCLevel.M, true, false, EciMode.Utf8);
+                QRCode qrCode = new QRCode(qrCodeData);
+                System.Drawing.Image qrCodeImage = qrCode.GetGraphic(Convert.ToInt32(_pixelsPerModule/8) < 4 ? 4 : Convert.ToInt32(_pixelsPerModule/8), Color.Black, Color.White, true);
+
+                DocumentBuilder builder = new DocumentBuilder(wordDoc);
+                var width = sh.Width;
+                var height = sh.Height;
+                TableAlignment horizontalAlignment;
+                
+                switch (sh.HorizontalAlignment)
+                {
+                    case HorizontalAlignment.Left: horizontalAlignment = TableAlignment.Left;
+                        break;
+
+                    case HorizontalAlignment.Center: horizontalAlignment = TableAlignment.Center;
+                        break;
+
+                    case HorizontalAlignment.Right: horizontalAlignment = TableAlignment.Right;
+                        break;
+
+                    default: horizontalAlignment = TableAlignment.Left;
+                        break;
+                }
+                string text = sh.GetText();
+                
+                builder.MoveTo(sh);
+                sh.Remove();
+                Aspose.Words.Tables.Table table = builder.StartTable();
+                Cell cell = builder.InsertCell();
+                builder.InsertImage(qrCodeImage,width,height);
+                builder.RowFormat.Height = height;
+                builder.RowFormat.HeightRule = HeightRule.Exactly;
+                table.PreferredWidth = PreferredWidth.FromPoints(width);
+                table.Alignment = horizontalAlignment;
+                table.ClearBorders();
+                builder.EndRow();
+                builder.EndTable();
+            }
+        }
+        
+        // تنظیم آپشن‌های بارکد
+        wordDoc.FieldOptions.BarcodeGenerator = new CustomBarcodeGenerator();
+        
+        if (isPdf)
+        {
+            var pdfMs = new MemoryStream();
+            
+            // تنظیمات مخصوص برای PDF فارسی
+            var pdf = new Aspose.Words.Saving.PdfSaveOptions();
+            
+            // تنظیم فونت‌های فارسی
+            pdf.NumeralFormat = NumeralFormat.Context;
+            pdf.FontFallbackSettings.LoadFontFallbackSettings();
+            
+            // اضافه کردن نستعلیق به لیست فونت‌های جایگزین
+            pdf.FontFallbackSettings.AddFontSubstitutes("Nastaliq", new string[] { "IranNastaliq", "B Nazanin", "Arial" });
+            
+            // تنظیم فونت‌های جاسازی شده برای اطمینان از نمایش صحیح
+            pdf.EmbedFullFonts = true;
+            pdf.FontEmbeddingMode = Aspose.Words.Saving.PdfFontEmbeddingMode.EmbedAll;
+            
+            // تنظیم جهت راست به چپ برای تمام متن‌ها
+            pdf.TextCompression = PdfTextCompression.Flate;
+            pdf.RightToLeftTextDirection = true;
+            
+            // تنظیم فرمت خروجی
+            pdf.SaveFormat = SaveFormat.Pdf;
+            
+            // آپدیت لایوت جداول قبل از ذخیره
+            wordDoc.UpdateTableLayout();
+            wordDoc.Save(pdfMs, pdf);
+            return pdfMs.ToArray();
+        }
+        
+        wordDoc.Save(Ms, SaveFormat.Docx);
+        return Ms.ToArray();
+       
     }
-
-    public Aspose.Words.Replacing.ReplaceAction Replacing(Aspose.Words.Replacing.ReplacingArgs args)
+    catch (Exception ex)
     {
-        // منطق جایگزینی متن خود را اینجا پیاده‌سازی کنید
-        // مثال:
-        args.Replacement = _replaceText;
-        return Aspose.Words.Replacing.ReplaceAction.Replace;
+        var logger = new RayLog4net(LoggerType.RuleService);
+        var message = "Message:" + ex.Message + ",StackTrace:" + ex.StackTrace + "," +
+                      (ex.InnerException != null
+                          ? "InnerExceptionMessage:" + ex.InnerException.Message + ",InnerExceptionStackTrace:" +
+                            ex.InnerException.StackTrace
+                          : "");
+        logger.Debug(message, true);
+        throw new Exception(ex.Message, ex);
+    }
+    finally
+    {
+        // منابع را آزاد کنید
+        if (Ms != null && Ms.CanRead)
+        {
+            // ممکن است نیاز به بستن یا آزادسازی منابع دیگر باشد
+        }
     }
 }
