@@ -1,8 +1,40 @@
-FindReplaceOptions options = new FindReplaceOptions();
+// ایجاد شیء گزینه‌های جستجو و جایگزینی
+var options = new Aspose.Words.Replacing.FindReplaceOptions();
+
+// تنظیم ReplaceEvaluator مورد نظر
 options.ReplacingCallback = new ReplaceEvaluatorFindAndInsertText(entVal.ToString().Replace("\r", "\n"));
-options.UseRegularExpressions = true;
+
+// اگر قبلاً از پارامتر boolean برای تنظیم match case استفاده می‌کردید
+options.MatchCase = false; // یا true بسته به نیاز شما
+
+// استفاده از الگوی regex به عنوان یک رشته
 doc.Range.Replace(Regex.Escape(p.Value), "", options);
+=============================
 
-doc.Range.Replace(Regex.Escape(p.Value), new ReplaceEvaluatorFindAndInsertText(entVal.ToString().Replace("\r", "\n")), false);
+// ایجاد شیء گزینه‌های جستجو و جایگزینی
+var options = new Aspose.Words.Replacing.FindReplaceOptions();
+options.ReplacingCallback = new ReplaceEvaluatorFindAndInsertText(entVal.ToString().Replace("\r", "\n"));
+options.MatchCase = false; // یا true بسته به نیاز شما
+options.UseRegularExpressions = true; // فعال کردن استفاده از Regex
 
-doc.Range.Replace(p.Value, new ReplaceEvaluatorFindAndInsertText(entVal.ToString().Replace("\r", "\n")), false);
+// استفاده از الگوی regex به عنوان یک رشته
+doc.Range.Replace(Regex.Escape(p.Value), "", options);
+==========================
+
+public class ReplaceEvaluatorFindAndInsertText : Aspose.Words.Replacing.IReplacingCallback
+{
+    private string _replaceText;
+
+    public ReplaceEvaluatorFindAndInsertText(string replaceText)
+    {
+        _replaceText = replaceText;
+    }
+
+    public Aspose.Words.Replacing.ReplaceAction Replacing(Aspose.Words.Replacing.ReplacingArgs args)
+    {
+        // منطق جایگزینی متن خود را اینجا پیاده‌سازی کنید
+        // مثال:
+        args.Replacement = _replaceText;
+        return Aspose.Words.Replacing.ReplaceAction.Replace;
+    }
+}
