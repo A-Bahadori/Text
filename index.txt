@@ -162,9 +162,12 @@ namespace EmojiSelectorApp
                 Text = "😊",
                 Location = new Point(520, 10),
                 Size = new Size(50, 50),
-                Font = new Font("Segoe UI", 16),
-                ToolTip = "نمایش اموجی‌ها (Ctrl+E)"
+                Font = new Font("Segoe UI", 16)
             };
+            
+            // اضافه کردن تولتیپ به دکمه اموجی
+            ToolTip emojiButtonTooltip = new ToolTip();
+            emojiButtonTooltip.SetToolTip(btnEmoji, "نمایش اموجی‌ها (Ctrl+E)");
             btnEmoji.Click += BtnEmoji_Click;
             this.Controls.Add(btnEmoji);
             
@@ -183,8 +186,26 @@ namespace EmojiSelectorApp
             {
                 Location = new Point(10, 10),
                 Size = new Size(540, 25),
-                PlaceholderText = "جستجوی اموجی...",
                 Font = new Font("Segoe UI", 10)
+            };
+            // اضافه کردن متن راهنما (Placeholder) با استفاده از رویداد
+            txtSearch.Text = "جستجوی اموجی...";
+            txtSearch.ForeColor = Color.Gray;
+            txtSearch.GotFocus += (s, e) => 
+            {
+                if (txtSearch.Text == "جستجوی اموجی...")
+                {
+                    txtSearch.Text = "";
+                    txtSearch.ForeColor = Color.Black;
+                }
+            };
+            txtSearch.LostFocus += (s, e) => 
+            {
+                if (string.IsNullOrWhiteSpace(txtSearch.Text))
+                {
+                    txtSearch.Text = "جستجوی اموجی...";
+                    txtSearch.ForeColor = Color.Gray;
+                }
             };
             txtSearch.TextChanged += TxtSearch_TextChanged;
             emojiPanel.Controls.Add(txtSearch);
@@ -319,7 +340,8 @@ namespace EmojiSelectorApp
         {
             string searchText = txtSearch.Text.Trim().ToLower();
             
-            if (string.IsNullOrEmpty(searchText))
+            // اگر متن جستجو همان متن راهنما باشد، آن را نادیده بگیر
+            if (searchText == "جستجوی اموجی..." || searchText.ToLower() == "جستجوی اموجی...")
             {
                 // اگر متن جستجو خالی باشد، نمایش همه تب‌ها
                 tabEmojiCategories.Visible = true;
