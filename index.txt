@@ -3,20 +3,37 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
+using System.Runtime.InteropServices; // برای استفاده از توابع API ویندوز
 
-namespace EmojiSelectorApp
+namespace Emoji2
 {
     public partial class MainForm : Form
     {
+        // برای ایجاد گوشه‌های گرد در پنل پاپ‌آپ
+        [DllImport("Gdi32.dll", EntryPoint = "CreateRoundRectRgn")]
+        private static extern IntPtr CreateRoundRectRgn
+        (
+            int nLeftRect,
+            int nTopRect,
+            int nRightRect,
+            int nBottomRect,
+            int nWidthEllipse,
+            int nHeightEllipse
+        );
+
         private TextBox txtMessage;
         private Button btnEmoji;
-        private EmojiPopupForm emojiPopup;
+        private Panel emojiPanel;
+        private TabControl tabEmojiCategories;
+        private TextBox txtSearch;
+        private FlowLayoutPanel favoriteEmojisPanel;
         private List<string> favoriteEmojis;
-        private Dictionary<string, List<string>> emojiCategories;
-        private const string FAVORITES_FILE = "favorites.txt";
         
         // دیکشنری برای دسته‌بندی اموجی‌ها
         private Dictionary<string, List<string>> emojiCategories;
+
+        // برای ذخیره موقعیت پنل پاپ‌آپ
+        private Point emojiPanelLocation;
 
         public MainForm()
         {
@@ -36,76 +53,9 @@ namespace EmojiSelectorApp
             if (e.Control && e.KeyCode == Keys.E)
             {
                 e.SuppressKeyPress = true;
-                ToggleEmojiPopup();
-            }
-        }
-
-        private void ToggleEmojiPopup()
-        {
-            if (emojiPopup == null || emojiPopup.IsDisposed)
-            {
-                emojiPopup = new EmojiPopupForm(this);
-                emojiPopup.EmojiSelected += OnEmojiSelected;
-                emojiPopup.FavoriteEmojisChanged += OnFavoriteEmojisChanged;
-            }
-
-            if (!emojiPopup.Visible)
-            {
-                Point popupLocation = new Point(
-                    btnEmoji.PointToScreen(new Point(0, btnEmoji.Height)).X,
-                    btnEmoji.PointToScreen(new Point(0, btnEmoji.Height)).Y
-                );
-                emojiPopup.Location = popupLocation;
-                emojiPopup.Show();
-            }
-            else
-            {
-                emojiPopup.Hide();
-            }
-        }
-
-        private void OnEmojiSelected(string emoji)
-        {
-            int cursorPosition = txtMessage.SelectionStart;
-            txtMessage.Text = txtMessage.Text.Insert(cursorPosition, emoji);
-            txtMessage.SelectionStart = cursorPosition + emoji.Length;
-            txtMessage.Focus();
-        }
-
-        private void OnFavoriteEmojisChanged(List<string> newFavorites)
-        {
-            favoriteEmojis = newFavorites;
-            SaveFavoriteEmojis();
-        }
-
-        private void LoadFavoriteEmojis()
-        {
-            try
-            {
-                if (System.IO.File.Exists(FAVORITES_FILE))
-                {
-                    favoriteEmojis = System.IO.File.ReadAllLines(FAVORITES_FILE).ToList();
-                }
-                else
-                {
-                    favoriteEmojis = new List<string>() { "👍", "👋", "❤️", "😂", "🙏", "👏", "🔥", "🎉" };
-                }
-            }
-            catch
-            {
-                favoriteEmojis = new List<string>() { "👍", "👋", "❤️", "😂", "🙏", "👏", "🔥", "🎉" };
-            }
-        }
-
-        private void SaveFavoriteEmojis()
-        {
-            try
-            {
-                System.IO.File.WriteAllLines(FAVORITES_FILE, favoriteEmojis);
-            }
-            catch
-            {
-                // Handle save error silently
+                emojiPanel.Visible = !emojiPanel.Visible;
+                if (emojiPanel.Visible)
+                    txtSearch.Focus();
             }
         }
 
@@ -179,6 +129,50 @@ namespace EmojiSelectorApp
             favoriteEmojis = new List<string>() { "👍", "👋", "❤️", "😂", "🙏", "👏", "🔥", "🎉" };
         }
 
+        private void LoadFavoriteEmojis()
+        {
+            try
+            {
+                // بررسی وجود فایل ذخیره‌سازی
+                string filePath = System.IO.Path.Combine(Application.StartupPath, "favorite_emojis.txt");
+                if (System.IO.File.Exists(filePath))
+                {
+                    // خواندن ایموجی‌های پرکاربرد از فایل
+                    string[] emojis = System.IO.File.ReadAllLines(filePath);
+                    favoriteEmojis = new List<string>(emojis);
+                }
+                else
+                {
+                    // اگر فایل وجود نداشت، از لیست پیش‌فرض استفاده می‌کنیم
+                    favoriteEmojis = new List<string>() { "👍", "👋", "❤️", "😂", "🙏", "👏", "🔥", "🎉" };
+                }
+            }
+            catch (Exception ex)
+            {
+                // در صورت بروز خطا، از لیست پیش‌فرض استفاده می‌کنیم
+                favoriteEmojis = new List<string>() { "👍", "👋", "❤️", "😂", "🙏", "👏", "🔥", "🎉" };
+                MessageBox.Show("خطا در بارگذاری ایموجی‌های پرکاربرد: " + ex.Message, "خطا", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void SaveFavoriteEmoji(string emoji)
+        {
+            // اضافه کردن به لیست پرکاربردها اگر قبلاً وجود نداشته باشد
+            if (!favoriteEmojis.Contains(emoji))
+            {
+                favoriteEmojis.Add(emoji);
+                // محدود کردن تعداد اموجی‌های پرکاربرد به 20 مورد
+                if (favoriteEmojis.Count > 20)
+                    favoriteEmojis.RemoveAt(0);
+                
+                // بروزرسانی پنل اموجی‌های پرکاربرد
+                UpdateFavoriteEmojisPanel();
+                
+                // ذخیره‌سازی لیست به‌روز شده در فایل
+                SaveFavoritesToFile();
+            }
+        }
+
         private void SetupControls()
         {
             // تنظیم فرم اصلی
@@ -211,193 +205,160 @@ namespace EmojiSelectorApp
             // اضافه کردن تولتیپ به دکمه اموجی
             ToolTip emojiButtonTooltip = new ToolTip();
             emojiButtonTooltip.SetToolTip(btnEmoji, "نمایش اموجی‌ها (Ctrl+E)");
-            btnEmoji.Click += (s, e) => ToggleEmojiPopup();
+            btnEmoji.Click += BtnEmoji_Click;
             this.Controls.Add(btnEmoji);
-        }
-
-        [STAThread]
-        static void Main()
-        {
-            Application.EnableVisualStyles();
-            Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(new MainForm());
-        }
-    }
-
-    public class EmojiPopupForm : Form
-    {
-        private TextBox txtSearch;
-        private TabControl tabEmojiCategories;
-        private FlowLayoutPanel favoriteEmojisPanel;
-        private List<string> favoriteEmojis;
-        private Dictionary<string, List<string>> emojiCategories;
-        private MainForm parentForm;
-
-        public event Action<string> EmojiSelected;
-        public event Action<List<string>> FavoriteEmojisChanged;
-
-        public EmojiPopupForm(MainForm parent)
-        {
-            parentForm = parent;
-            InitializePopup();
-            InitializeEmojiCategories();
-            LoadFavoriteEmojis();
-            SetupControls();
-        }
-
-        private void InitializePopup()
-        {
-            this.FormBorderStyle = FormBorderStyle.None;
-            this.Size = new Size(400, 500);
-            this.ShowInTaskbar = false;
-            this.TopMost = true;
-            this.StartPosition = FormStartPosition.Manual;
-            this.RightToLeft = RightToLeft.Yes;
-            this.BackColor = Color.White;
-            this.Paint += (s, e) => 
-            {
-                e.Graphics.DrawRectangle(new Pen(Color.LightGray), 0, 0, Width - 1, Height - 1);
-            };
-        }
-
-        private void LoadFavoriteEmojis()
-        {
-            favoriteEmojis = parentForm.favoriteEmojis;
-        }
-
-        private void InitializeEmojiCategories()
-        {
-            emojiCategories = new Dictionary<string, List<string>>();
             
-            // دسته احساسات و صورت‌ها
-            emojiCategories["احساسات"] = new List<string>()
+            // ایجاد پنل اصلی برای نمایش اموجی‌ها به صورت پاپ‌آپ
+            emojiPanel = new Panel
             {
-                "😀", "😁", "😂", "🤣", "😃", "😄", "😅", "😆",
-                "😉", "😊", "😋", "😎", "😍", "😘", "🥰", "😗",
-                "😙", "😚", "🙂", "🤗", "🤩", "🤔", "🤨", "😐",
-                "😑", "😶", "🙄", "😏", "😣", "😥", "😮", "🤐",
-                "😯", "😪", "😫", "🥱", "😴", "😌", "😛", "😜",
-                "😝", "🤤", "😒", "😓", "😔", "😕", "🙃", "🤑",
-                "😲", "☹️", "🙁", "😖", "😞", "😟", "😤", "😢",
-                "😭", "😦", "😧", "😨", "😩", "🤯", "😬", "😰"
+                Size = new Size(560, 350),
+                BorderStyle = BorderStyle.None,
+                Visible = false,
+                BackColor = Color.White,
+                AutoScroll = true // اضافه کردن قابلیت اسکرول خودکار
             };
             
-            // دسته حیوانات
-            emojiCategories["حیوانات"] = new List<string>()
-            {
-                "🐶", "🐱", "🐭", "🐹", "🐰", "🦊", "🐻", "🐼",
-                "🐨", "🐯", "🦁", "🐮", "🐷", "🐸", "🐵", "🐔",
-                "🐧", "🐦", "🐤", "🦆", "🦅", "🦉", "🦇", "🐺",
-                "🐗", "🐴", "🦄", "🐝", "🐛", "🦋", "🐌", "🐞",
-                "🐜", "🦟", "🦗", "🕷️", "🦂", "🐢", "🐍", "🦎",
-                "🦖", "🦕", "🐙", "🦑", "🦐", "🦞", "🦀", "🐡",
-                "🐠", "🐟", "🐬", "🐳", "🐋", "🦈", "🐊", "🐅"
+            // اضافه کردن سایه و گوشه‌های گرد به پنل
+            emojiPanel.Paint += (s, e) => {
+                // ایجاد سایه و حاشیه
+                Rectangle rect = new Rectangle(0, 0, emojiPanel.Width - 1, emojiPanel.Height - 1);
+                using (GraphicsPath path = new GraphicsPath())
+                {
+                    int radius = 10;
+                    path.AddArc(rect.X, rect.Y, radius, radius, 180, 90);
+                    path.AddArc(rect.Right - radius, rect.Y, radius, radius, 270, 90);
+                    path.AddArc(rect.Right - radius, rect.Bottom - radius, radius, radius, 0, 90);
+                    path.AddArc(rect.X, rect.Bottom - radius, radius, radius, 90, 90);
+                    path.CloseAllFigures();
+                    
+                    e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+                    using (Pen pen = new Pen(Color.FromArgb(180, 180, 180), 1))
+                    {
+                        e.Graphics.DrawPath(pen, path);
+                    }
+                    
+                    // اضافه کردن سایه نرم
+                    for (int i = 1; i <= 5; i++)
+                    {
+                        using (Pen shadowPen = new Pen(Color.FromArgb(20, 0, 0, 0), 1))
+                        {
+                            e.Graphics.DrawRectangle(shadowPen, rect.X - i, rect.Y - i, rect.Width + i * 2, rect.Height + i * 2);
+                        }
+                    }
+                }
             };
             
-            // دسته غذاها
-            emojiCategories["غذاها"] = new List<string>()
-            {
-                "🍏", "🍎", "🍐", "🍊", "🍋", "🍌", "🍉", "🍇",
-                "🍓", "🍈", "🍒", "🍑", "🥭", "🍍", "🥥", "🥝",
-                "🍅", "🍆", "🥑", "🥦", "🥬", "🥒", "🌶️", "🌽",
-                "🥕", "🧄", "🧅", "🥔", "🍠", "🥐", "🥯", "🍞",
-                "🥖", "🥨", "🧀", "🥚", "🍳", "🧈", "🥞", "🧇",
-                "🥓", "🥩", "🍗", "🍖", "🌭", "🍔", "🍟", "🍕",
-                "🥪", "🥙", "🧆", "🌮", "🌯", "🥗", "🥘", "🥫"
+            // تنظیم ناحیه گرد برای پنل
+            emojiPanel.Region = System.Drawing.Region.FromHrgn(CreateRoundRectRgn(0, 0, emojiPanel.Width, emojiPanel.Height, 10, 10));
+            
+            // اضافه کردن قابلیت تغییر اندازه به پنل
+            emojiPanel.Resize += (s, e) => {
+                // تنظیم مجدد موقعیت کنترل‌ها بر اساس اندازه جدید پنل
+                if (txtSearch != null) txtSearch.Width = emojiPanel.Width - 20;
+                if (favoriteEmojisPanel != null) favoriteEmojisPanel.Width = emojiPanel.Width - 20;
+                if (tabEmojiCategories != null) {
+                    tabEmojiCategories.Width = emojiPanel.Width - 20;
+                    tabEmojiCategories.Height = emojiPanel.Height - tabEmojiCategories.Top - 10;
+                }
             };
             
-            // دسته علائم و نمادها
-            emojiCategories["نمادها"] = new List<string>()
-            {
-                "❤️", "🧡", "💛", "💚", "💙", "💜", "🖤", "🤍",
-                "🤎", "💔", "❣️", "💕", "💞", "💓", "💗", "💖",
-                "💘", "💝", "💟", "☮️", "✝️", "☪️", "🕉️", "☸️",
-                "✡️", "🔯", "🕎", "☯️", "☦️", "🛐", "⛎", "♈",
-                "♉", "♊", "♋", "♌", "♍", "♎", "♏", "♐",
-                "♑", "♒", "♓", "🆔", "⚛️", "🉑", "☢️", "☣️",
-                "📴", "📳", "🈶", "🈚", "🈸", "🈺", "🈷️", "✴️"
+            // تنظیمات برای حالت پاپ‌آپ
+            emojiPanel.Paint += (s, e) => {
+                e.Graphics.DrawRectangle(new Pen(Color.Gray, 1), 0, 0, emojiPanel.Width - 1, emojiPanel.Height - 1);
             };
             
-            // دسته اشیاء
-            emojiCategories["اشیاء"] = new List<string>()
+            // اضافه کردن سایه به پنل
+            emojiPanel.Region = System.Drawing.Region.FromHrgn(CreateRoundRectRgn(0, 0, emojiPanel.Width, emojiPanel.Height, 10, 10));
+            this.Controls.Add(emojiPanel);
+            
+            // اضافه کردن دکمه بستن به پنل پاپ‌آپ
+            Button btnClosePanel = new Button
             {
-                "⌚", "📱", "💻", "⌨️", "🖥️", "🖨️", "🖱️", "🖲️",
-                "💽", "💾", "💿", "📀", "📼", "📷", "📸", "📹",
-                "🎥", "📽️", "🎞️", "📞", "☎️", "📟", "📠", "📺",
-                "📻", "🎙️", "🎚️", "🎛️", "🧭", "⏱️", "⏲️", "⏰",
-                "🕰️", "⌛", "⏳", "📡", "🔋", "🔌", "💡", "🔦",
-                "🕯️", "🧯", "🛢️", "💸", "💵", "💴", "💶", "💷",
-                "💰", "💳", "💎", "⚖️", "🧰", "🔧", "🔨", "⚒️"
+                Text = "×",
+                Size = new Size(25, 25),
+                Location = new Point(emojiPanel.Width - 30, 5),
+                FlatStyle = FlatStyle.Flat,
+                Font = new Font("Arial", 12, FontStyle.Bold),
+                ForeColor = Color.Red,
+                BackColor = Color.White,
+                Cursor = Cursors.Hand
             };
-        }
-
-        private void SetupControls()
-        {
-            // Search TextBox
+            btnClosePanel.FlatAppearance.BorderSize = 0;
+            btnClosePanel.Click += (s, e) => emojiPanel.Visible = false;
+            emojiPanel.Controls.Add(btnClosePanel);
+            
+            // ایجاد کادر جستجو برای اموجی‌ها
             txtSearch = new TextBox
             {
                 Location = new Point(10, 10),
-                Size = new Size(380, 25),
-                Font = new Font("Segoe UI", 10),
-                PlaceholderText = "جستجوی اموجی..."
+                Size = new Size(540, 25),
+                Font = new Font("Segoe UI", 10)
+            };
+            // اضافه کردن متن راهنما (Placeholder) با استفاده از رویداد
+            txtSearch.Text = "جستجوی اموجی...";
+            txtSearch.ForeColor = Color.Gray;
+            txtSearch.GotFocus += (s, e) => 
+            {
+                if (txtSearch.Text == "جستجوی اموجی...")
+                {
+                    txtSearch.Text = "";
+                    txtSearch.ForeColor = Color.Black;
+                }
+            };
+            txtSearch.LostFocus += (s, e) => 
+            {
+                if (string.IsNullOrWhiteSpace(txtSearch.Text))
+                {
+                    txtSearch.Text = "جستجوی اموجی...";
+                    txtSearch.ForeColor = Color.Gray;
+                }
             };
             txtSearch.TextChanged += TxtSearch_TextChanged;
-            this.Controls.Add(txtSearch);
-
-            // Favorites Panel
+            emojiPanel.Controls.Add(txtSearch);
+            
+            // ایجاد پنل برای اموجی‌های پرکاربرد
             favoriteEmojisPanel = new FlowLayoutPanel
             {
                 Location = new Point(10, 45),
-                Size = new Size(380, 50),
+                Size = new Size(540, 50),
                 BorderStyle = BorderStyle.FixedSingle,
-                FlowDirection = FlowDirection.RightToLeft
+                FlowDirection = FlowDirection.LeftToRight
             };
-            this.Controls.Add(favoriteEmojisPanel);
+            emojiPanel.Controls.Add(favoriteEmojisPanel);
             UpdateFavoriteEmojisPanel();
-
-            // Tab Control
+            
+            // ایجاد تب کنترل برای دسته‌بندی‌ها
             tabEmojiCategories = new TabControl
             {
                 Location = new Point(10, 105),
-                Size = new Size(380, 385),
+                Size = new Size(540, 235),
                 Font = new Font("Segoe UI", 9)
             };
-            this.Controls.Add(tabEmojiCategories);
-
-            // Create tabs for each category
+            emojiPanel.Controls.Add(tabEmojiCategories);
+            
+            // ایجاد تب‌ها و اضافه کردن اموجی‌ها به هر دسته
             foreach (var category in emojiCategories)
             {
                 TabPage tabPage = new TabPage(category.Key);
                 tabPage.RightToLeft = RightToLeft.Yes;
-
+                
                 FlowLayoutPanel flowPanel = new FlowLayoutPanel
                 {
                     Dock = DockStyle.Fill,
                     AutoScroll = true,
                     FlowDirection = FlowDirection.RightToLeft
                 };
-
+                
+                // اضافه کردن دکمه‌های اموجی به پنل
                 foreach (var emoji in category.Value)
                 {
                     Button btnEmoji = CreateEmojiButton(emoji);
                     flowPanel.Controls.Add(btnEmoji);
                 }
-
+                
                 tabPage.Controls.Add(flowPanel);
                 tabEmojiCategories.TabPages.Add(tabPage);
             }
-
-            // Add close button
-            Button btnClose = new Button
-            {
-                Text = "×",
-                Size = new Size(25, 25),
-                Location = new Point(365, 5),
-                FlatStyle = FlatStyle.Flat,
-                Font = new Font("Segoe UI", 12, FontStyle.Bold)
-            };
-            btnClose.Click += (s, e) => this.Hide();
-            this.Controls.Add(btnClose);
         }
 
         private Button CreateEmojiButton(string emoji)
@@ -411,51 +372,39 @@ namespace EmojiSelectorApp
                 FlatStyle = FlatStyle.Flat,
                 UseVisualStyleBackColor = true
             };
-
+            
+            // اضافه کردن منوی راست کلیک برای اضافه کردن به پرکاربردها
             ContextMenuStrip contextMenu = new ContextMenuStrip();
             ToolStripMenuItem addToFavoritesItem = new ToolStripMenuItem("افزودن به پرکاربردها");
-            addToFavoritesItem.Click += (sender, e) => AddToFavorites(emoji);
+            addToFavoritesItem.Click += (sender, e) => 
+            {
+                SaveFavoriteEmoji(emoji);
+            };
             contextMenu.Items.Add(addToFavoritesItem);
-
-            if (favoriteEmojis.Contains(emoji))
-            {
-                ToolStripMenuItem removeFromFavoritesItem = new ToolStripMenuItem("حذف از پرکاربردها");
-                removeFromFavoritesItem.Click += (sender, e) => RemoveFromFavorites(emoji);
-                contextMenu.Items.Add(removeFromFavoritesItem);
-            }
-
             btnEmoji.ContextMenuStrip = contextMenu;
-            btnEmoji.Click += (sender, e) => EmojiSelected?.Invoke(emoji);
-
+            
+            btnEmoji.Click += (sender, e) => 
+            {
+                // اضافه کردن اموجی انتخاب شده به موقعیت فعلی کرسر
+                int cursorPosition = txtMessage.SelectionStart;
+                txtMessage.Text = txtMessage.Text.Insert(cursorPosition, emoji);
+                txtMessage.SelectionStart = cursorPosition + emoji.Length;
+                
+                // اضافه کردن به لیست پرکاربردها
+                SaveFavoriteEmoji(emoji);
+                
+                // تمرکز دوباره روی TextBox
+                txtMessage.Focus();
+            };
+            
             return btnEmoji;
-        }
-
-        private void AddToFavorites(string emoji)
-        {
-            if (!favoriteEmojis.Contains(emoji))
-            {
-                favoriteEmojis.Add(emoji);
-                if (favoriteEmojis.Count > 20)
-                    favoriteEmojis.RemoveAt(0);
-                UpdateFavoriteEmojisPanel();
-                FavoriteEmojisChanged?.Invoke(favoriteEmojis);
-            }
-        }
-
-        private void RemoveFromFavorites(string emoji)
-        {
-            if (favoriteEmojis.Contains(emoji))
-            {
-                favoriteEmojis.Remove(emoji);
-                UpdateFavoriteEmojisPanel();
-                FavoriteEmojisChanged?.Invoke(favoriteEmojis);
-            }
         }
 
         private void UpdateFavoriteEmojisPanel()
         {
             favoriteEmojisPanel.Controls.Clear();
-
+            
+            // اضافه کردن برچسب عنوان
             Label lblTitle = new Label
             {
                 Text = "پرکاربردها:",
@@ -464,7 +413,8 @@ namespace EmojiSelectorApp
                 Font = new Font("Segoe UI", 9)
             };
             favoriteEmojisPanel.Controls.Add(lblTitle);
-
+            
+            // اضافه کردن دکمه‌های اموجی پرکاربرد
             foreach (var emoji in favoriteEmojis)
             {
                 Button btnEmoji = new Button
@@ -476,9 +426,56 @@ namespace EmojiSelectorApp
                     FlatStyle = FlatStyle.Flat,
                     UseVisualStyleBackColor = true
                 };
-
-                btnEmoji.Click += (sender, e) => EmojiSelected?.Invoke(emoji);
+                
+                btnEmoji.Click += (sender, e) => 
+                {
+                    // اضافه کردن اموجی انتخاب شده به موقعیت فعلی کرسر
+                    int cursorPosition = txtMessage.SelectionStart;
+                    txtMessage.Text = txtMessage.Text.Insert(cursorPosition, emoji);
+                    txtMessage.SelectionStart = cursorPosition + emoji.Length;
+                    
+                    // تمرکز دوباره روی TextBox
+                    txtMessage.Focus();
+                };
+                
+                // اضافه کردن منوی راست کلیک برای حذف از پرکاربردها
+                ContextMenuStrip contextMenu = new ContextMenuStrip();
+                ToolStripMenuItem removeFromFavoritesItem = new ToolStripMenuItem("حذف از پرکاربردها");
+                removeFromFavoritesItem.Click += (sender, e) => 
+                {
+                    RemoveFavoriteEmoji(emoji);
+                };
+                contextMenu.Items.Add(removeFromFavoritesItem);
+                btnEmoji.ContextMenuStrip = contextMenu;
+                
                 favoriteEmojisPanel.Controls.Add(btnEmoji);
+            }
+        }
+
+        // متد جدید برای حذف ایموجی از پرکاربردها
+        private void RemoveFavoriteEmoji(string emoji)
+        {
+            if (favoriteEmojis.Contains(emoji))
+            {
+                favoriteEmojis.Remove(emoji);
+                UpdateFavoriteEmojisPanel();
+                
+                // ذخیره‌سازی لیست به‌روز شده در فایل
+                SaveFavoritesToFile();
+            }
+        }
+        
+        // متد جدید برای ذخیره‌سازی ایموجی‌های پرکاربرد در فایل
+        private void SaveFavoritesToFile()
+        {
+            try
+            {
+                string filePath = System.IO.Path.Combine(Application.StartupPath, "favorite_emojis.txt");
+                System.IO.File.WriteAllLines(filePath, favoriteEmojis.ToArray());
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("خطا در ذخیره‌سازی ایموجی‌های پرکاربرد: " + ex.Message, "خطا", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -486,13 +483,24 @@ namespace EmojiSelectorApp
         {
             string searchText = txtSearch.Text.Trim().ToLower();
             
-            if (string.IsNullOrEmpty(searchText) || searchText == "جستجوی اموجی...")
+            // اگر متن جستجو همان متن راهنما باشد، آن را نادیده بگیر
+            if (searchText == "جستجوی اموجی..." || searchText.ToLower() == "جستجوی اموجی..." || string.IsNullOrWhiteSpace(searchText))
             {
-                tabEmojiCategories.Visible = true;
+                // حذف تب نتایج جستجو اگر وجود داشته باشد
+                for (int i = 0; i < tabEmojiCategories.TabPages.Count; i++)
+                {
+                    if (tabEmojiCategories.TabPages[i].Text == "نتایج جستجو")
+                    {
+                        tabEmojiCategories.TabPages.RemoveAt(i);
+                        break;
+                    }
+                }
                 return;
             }
-
+            
+            // ایجاد تب موقت برای نتایج جستجو
             TabPage searchResultTab = null;
+            
             foreach (TabPage tab in tabEmojiCategories.TabPages)
             {
                 if (tab.Text == "نتایج جستجو")
@@ -502,379 +510,199 @@ namespace EmojiSelectorApp
                     break;
                 }
             }
-
+            
             if (searchResultTab == null)
             {
                 searchResultTab = new TabPage("نتایج جستجو");
                 tabEmojiCategories.TabPages.Add(searchResultTab);
             }
-
+            
             FlowLayoutPanel flowPanel = new FlowLayoutPanel
             {
                 Dock = DockStyle.Fill,
                 AutoScroll = true,
                 FlowDirection = FlowDirection.RightToLeft
             };
-
-            var searchResults = new List<string>();
+            
+            // دیکشنری برای نگهداری توضیحات اموجی‌ها (برای بهبود جستجو)
+            Dictionary<string, string> emojiDescriptions = new Dictionary<string, string>()
+            {
+                // احساسات
+                { "😀", "خنده لبخند شادی خوشحالی" },
+                { "😁", "خنده لبخند شادی خوشحالی دندان" },
+                { "😂", "خنده اشک شادی خوشحالی" },
+                { "🤣", "خنده غش اشک شادی خوشحالی" },
+                { "😃", "خنده لبخند شادی خوشحالی دهان باز" },
+                { "😄", "خنده لبخند شادی خوشحالی دهان باز دندان" },
+                { "😅", "خنده لبخند شادی خوشحالی عرق" },
+                { "😆", "خنده لبخند شادی خوشحالی چشم بسته" },
+                { "😉", "چشمک لبخند" },
+                { "😊", "لبخند شادی خوشحالی چشم" },
+                { "😋", "لبخند غذا خوشمزه زبان" },
+                { "😎", "باحال عینک خفن" },
+                { "😍", "عشق قلب چشم محبت" },
+                { "😘", "بوس عشق قلب محبت" },
+                { "🥰", "عشق قلب محبت" },
+                
+                // حیوانات
+                { "🐶", "سگ حیوان" },
+                { "🐱", "گربه حیوان" },
+                { "🐭", "موش حیوان" },
+                { "🐹", "همستر حیوان" },
+                { "🐰", "خرگوش حیوان" },
+                { "🦊", "روباه حیوان" },
+                { "🐻", "خرس حیوان" },
+                { "🐼", "پاندا حیوان" },
+                
+                // غذاها
+                { "🍏", "سیب میوه غذا" },
+                { "🍎", "سیب قرمز میوه غذا" },
+                { "🍐", "گلابی میوه غذا" },
+                { "🍊", "پرتقال نارنگی میوه غذا" },
+                { "🍋", "لیمو میوه غذا" },
+                { "🍌", "موز میوه غذا" },
+                
+                // نمادها
+                { "❤️", "قلب عشق محبت قرمز" },
+                { "🧡", "قلب عشق محبت نارنجی" },
+                { "💛", "قلب عشق محبت زرد" },
+                { "💚", "قلب عشق محبت سبز" },
+                { "💙", "قلب عشق محبت آبی" },
+                
+                // اشیاء
+                { "⌚", "ساعت زمان" },
+                { "📱", "موبایل تلفن گوشی" },
+                { "💻", "لپتاپ کامپیوتر" },
+                { "⌨️", "کیبورد" },
+                { "🖥️", "کامپیوتر مانیتور" }
+            };
+            
+            // جستجو در همه دسته‌بندی‌ها
+            List<string> searchResults = new List<string>();
             foreach (var category in emojiCategories)
             {
-                foreach (var emoji in category.Value)
+                // بهبود جستجو - جستجو در نام دسته‌بندی و اموجی‌ها
+                if (category.Key.ToLower().Contains(searchText))
                 {
-                    if (emoji.Contains(searchText))
+                    // اضافه کردن همه اموجی‌های دسته‌بندی به نتایج
+                    searchResults.AddRange(category.Value);
+                }
+                else
+                {
+                    // جستجو در اموجی‌های هر دسته‌بندی
+                    foreach (var emoji in category.Value)
                     {
-                        searchResults.Add(emoji);
+                        // جستجو در خود اموجی
+                        if (emoji.Contains(searchText))
+                        {
+                            searchResults.Add(emoji);
+                        }
+                        // جستجو در توضیحات اموجی
+                        else if (emojiDescriptions.ContainsKey(emoji) && 
+                                 emojiDescriptions[emoji].ToLower().Contains(searchText))
+                        {
+                            searchResults.Add(emoji);
+                        }
                     }
                 }
             }
-
-            foreach (var emoji in searchResults)
+            
+            // حذف موارد تکراری
+            searchResults = searchResults.Distinct().ToList();
+            
+            // اضافه کردن نتایج جستجو به پنل
+            if (searchResults.Count > 0)
             {
-                Button btnEmoji = CreateEmojiButton(emoji);
-                flowPanel.Controls.Add(btnEmoji);
+                // اضافه کردن برچسب تعداد نتایج
+                Label lblResultCount = new Label
+                {
+                    Text = $"{searchResults.Count} نتیجه برای '{searchText}'",
+                    Dock = DockStyle.Top,
+                    TextAlign = ContentAlignment.MiddleCenter,
+                    Font = new Font("Segoe UI", 9, FontStyle.Bold),
+                    ForeColor = Color.DarkBlue,
+                    Padding = new Padding(0, 5, 0, 5)
+                };
+                flowPanel.Controls.Add(lblResultCount);
+                
+                foreach (var emoji in searchResults)
+                {
+                    Button btnEmoji = CreateEmojiButton(emoji);
+                    flowPanel.Controls.Add(btnEmoji);
+                }
             }
-
+            else
+            {
+                // نمایش پیام عدم وجود نتیجه
+                Label lblNoResult = new Label
+                {
+                    Text = $"هیچ نتیجه‌ای برای '{searchText}' یافت نشد",
+                    Dock = DockStyle.Fill,
+                    TextAlign = ContentAlignment.MiddleCenter,
+                    Font = new Font("Segoe UI", 10),
+                    ForeColor = Color.Gray
+                };
+                flowPanel.Controls.Add(lblNoResult);
+            }
+            
             searchResultTab.Controls.Add(flowPanel);
             tabEmojiCategories.SelectedTab = searchResultTab;
         }
 
-        protected override void OnDeactivate(EventArgs e)
+        private void BtnEmoji_Click(object sender, EventArgs e)
         {
-            base.OnDeactivate(e);
-            this.Hide();
+            // تنظیم موقعیت پنل پاپ‌آپ نسبت به دکمه اموجی
+            emojiPanelLocation = btnEmoji.PointToScreen(Point.Empty);
+            emojiPanelLocation.Y += btnEmoji.Height + 5;
+            emojiPanelLocation = this.PointToClient(emojiPanelLocation);
+            
+            // تنظیم موقعیت پنل
+            emojiPanel.Location = emojiPanelLocation;
+            
+            // اضافه کردن افکت نمایش پنل
+            if (!emojiPanel.Visible)
+            {
+                // نمایش پنل با افکت
+                emojiPanel.Opacity = 0;
+                emojiPanel.Visible = true;
+                
+                // استفاده از تایمر برای ایجاد افکت فید این
+                Timer fadeTimer = new Timer();
+                fadeTimer.Interval = 10;
+                double opacity = 0;
+                
+                fadeTimer.Tick += (s, args) => {
+                    opacity += 0.1;
+                    if (opacity >= 1)
+                    {
+                        emojiPanel.Opacity = 1;
+                        fadeTimer.Stop();
+                        fadeTimer.Dispose();
+                    }
+                    else
+                    {
+                        emojiPanel.Opacity = opacity;
+                    }
+                };
+                
+                fadeTimer.Start();
+                txtSearch.Focus();
+            }
+            else
+            {
+                // مخفی کردن پنل
+                emojiPanel.Visible = false;
+            }
+        }
+        
+        // اضافه کردن رویداد کلیک خارج از پنل برای بستن پنل پاپ‌آپ
+        protected override void OnClick(EventArgs e)
+        {
+            base.OnClick(e);
+            if (emojiPanel.Visible && !emojiPanel.Bounds.Contains(this.PointToClient(Cursor.Position)))
+            {
+                emojiPanel.Visible = false;
+            }
         }
     }
 }
-
-
-=================================================================================
-
-using System;
-using System.Collections.Generic;
-using System.Drawing;
-using System.Linq;
-using System.Windows.Forms;
-
-namespace EmojiSelectorApp
-{
-    public class EmojiPopupForm : Form
-    {
-        private TextBox txtSearch;
-        private TabControl tabEmojiCategories;
-        private FlowLayoutPanel favoriteEmojisPanel;
-        private List<string> favoriteEmojis;
-        private Dictionary<string, List<string>> emojiCategories;
-        private MainForm parentForm;
-
-        public event Action<string> EmojiSelected;
-        public event Action<List<string>> FavoriteEmojisChanged;
-
-        public EmojiPopupForm(MainForm parent)
-        {
-            parentForm = parent;
-            InitializePopup();
-            InitializeEmojiCategories();
-            LoadFavoriteEmojis();
-            SetupControls();
-        }
-
-        private void InitializePopup()
-        {
-            this.FormBorderStyle = FormBorderStyle.None;
-            this.Size = new Size(400, 500);
-            this.ShowInTaskbar = false;
-            this.TopMost = true;
-            this.StartPosition = FormStartPosition.Manual;
-            this.RightToLeft = RightToLeft.Yes;
-            this.BackColor = Color.White;
-            this.Paint += (s, e) => 
-            {
-                e.Graphics.DrawRectangle(new Pen(Color.LightGray), 0, 0, Width - 1, Height - 1);
-            };
-        }
-
-        private void LoadFavoriteEmojis()
-        {
-            favoriteEmojis = parentForm.favoriteEmojis;
-        }
-
-        private void InitializeEmojiCategories()
-        {
-            emojiCategories = new Dictionary<string, List<string>>();
-            
-            // دسته احساسات و صورت‌ها
-            emojiCategories["احساسات"] = new List<string>()
-            {
-                "😀", "😁", "😂", "🤣", "😃", "😄", "😅", "😆",
-                "😉", "😊", "😋", "😎", "😍", "😘", "🥰", "😗",
-                "😙", "😚", "🙂", "🤗", "🤩", "🤔", "🤨", "😐",
-                "😑", "😶", "🙄", "😏", "😣", "😥", "😮", "🤐",
-                "😯", "😪", "😫", "🥱", "😴", "😌", "😛", "😜",
-                "😝", "🤤", "😒", "😓", "😔", "😕", "🙃", "🤑",
-                "😲", "☹️", "🙁", "😖", "😞", "😟", "😤", "😢",
-                "😭", "😦", "😧", "😨", "😩", "🤯", "😬", "😰"
-            };
-            
-            // دسته حیوانات
-            emojiCategories["حیوانات"] = new List<string>()
-            {
-                "🐶", "🐱", "🐭", "🐹", "🐰", "🦊", "🐻", "🐼",
-                "🐨", "🐯", "🦁", "🐮", "🐷", "🐸", "🐵", "🐔",
-                "🐧", "🐦", "🐤", "🦆", "🦅", "🦉", "🦇", "🐺",
-                "🐗", "🐴", "🦄", "🐝", "🐛", "🦋", "🐌", "🐞",
-                "🐜", "🦟", "🦗", "🕷️", "🦂", "🐢", "🐍", "🦎",
-                "🦖", "🦕", "🐙", "🦑", "🦐", "🦞", "🦀", "🐡",
-                "🐠", "🐟", "🐬", "🐳", "🐋", "🦈", "🐊", "🐅"
-            };
-            
-            // دسته غذاها
-            emojiCategories["غذاها"] = new List<string>()
-            {
-                "🍏", "🍎", "🍐", "🍊", "🍋", "🍌", "🍉", "🍇",
-                "🍓", "🍈", "🍒", "🍑", "🥭", "🍍", "🥥", "🥝",
-                "🍅", "🍆", "🥑", "🥦", "🥬", "🥒", "🌶️", "🌽",
-                "🥕", "🧄", "🧅", "🥔", "🍠", "🥐", "🥯", "🍞",
-                "🥖", "🥨", "🧀", "🥚", "🍳", "🧈", "🥞", "🧇",
-                "🥓", "🥩", "🍗", "🍖", "🌭", "🍔", "🍟", "🍕",
-                "🥪", "🥙", "🧆", "🌮", "🌯", "🥗", "🥘", "🥫"
-            };
-            
-            // دسته علائم و نمادها
-            emojiCategories["نمادها"] = new List<string>()
-            {
-                "❤️", "🧡", "💛", "💚", "💙", "💜", "🖤", "🤍",
-                "🤎", "💔", "❣️", "💕", "💞", "💓", "💗", "💖",
-                "💘", "💝", "💟", "☮️", "✝️", "☪️", "🕉️", "☸️",
-                "✡️", "🔯", "🕎", "☯️", "☦️", "🛐", "⛎", "♈",
-                "♉", "♊", "♋", "♌", "♍", "♎", "♏", "♐",
-                "♑", "♒", "♓", "🆔", "⚛️", "🉑", "☢️", "☣️",
-                "📴", "📳", "🈶", "🈚", "🈸", "🈺", "🈷️", "✴️"
-            };
-            
-            // دسته اشیاء
-            emojiCategories["اشیاء"] = new List<string>()
-            {
-                "⌚", "📱", "💻", "⌨️", "🖥️", "🖨️", "🖱️", "🖲️",
-                "💽", "💾", "💿", "📀", "📼", "📷", "📸", "📹",
-                "🎥", "📽️", "🎞️", "📞", "☎️", "📟", "📠", "📺",
-                "📻", "🎙️", "🎚️", "🎛️", "🧭", "⏱️", "⏲️", "⏰",
-                "🕰️", "⌛", "⏳", "📡", "🔋", "🔌", "💡", "🔦",
-                "🕯️", "🧯", "🛢️", "💸", "💵", "💴", "💶", "💷",
-                "💰", "💳", "💎", "⚖️", "🧰", "🔧", "🔨", "⚒️"
-            };
-        }
-
-        private void SetupControls()
-        {
-            // Search TextBox
-            txtSearch = new TextBox
-            {
-                Location = new Point(10, 10),
-                Size = new Size(380, 25),
-                Font = new Font("Segoe UI", 10),
-                PlaceholderText = "جستجوی اموجی..."
-            };
-            txtSearch.TextChanged += TxtSearch_TextChanged;
-            this.Controls.Add(txtSearch);
-
-            // Favorites Panel
-            favoriteEmojisPanel = new FlowLayoutPanel
-            {
-                Location = new Point(10, 45),
-                Size = new Size(380, 50),
-                BorderStyle = BorderStyle.FixedSingle,
-                FlowDirection = FlowDirection.RightToLeft
-            };
-            this.Controls.Add(favoriteEmojisPanel);
-            UpdateFavoriteEmojisPanel();
-
-            // Tab Control
-            tabEmojiCategories = new TabControl
-            {
-                Location = new Point(10, 105),
-                Size = new Size(380, 385),
-                Font = new Font("Segoe UI", 9)
-            };
-            this.Controls.Add(tabEmojiCategories);
-
-            // Create tabs for each category
-            foreach (var category in emojiCategories)
-            {
-                TabPage tabPage = new TabPage(category.Key);
-                tabPage.RightToLeft = RightToLeft.Yes;
-
-                FlowLayoutPanel flowPanel = new FlowLayoutPanel
-                {
-                    Dock = DockStyle.Fill,
-                    AutoScroll = true,
-                    FlowDirection = FlowDirection.RightToLeft
-                };
-
-                foreach (var emoji in category.Value)
-                {
-                    Button btnEmoji = CreateEmojiButton(emoji);
-                    flowPanel.Controls.Add(btnEmoji);
-                }
-
-                tabPage.Controls.Add(flowPanel);
-                tabEmojiCategories.TabPages.Add(tabPage);
-            }
-
-            // Add close button
-            Button btnClose = new Button
-            {
-                Text = "×",
-                Size = new Size(25, 25),
-                Location = new Point(365, 5),
-                FlatStyle = FlatStyle.Flat,
-                Font = new Font("Segoe UI", 12, FontStyle.Bold)
-            };
-            btnClose.Click += (s, e) => this.Hide();
-            this.Controls.Add(btnClose);
-        }
-
-        private Button CreateEmojiButton(string emoji)
-        {
-            Button btnEmoji = new Button
-            {
-                Text = emoji,
-                Size = new Size(40, 40),
-                Margin = new Padding(3),
-                Font = new Font("Segoe UI", 12),
-                FlatStyle = FlatStyle.Flat,
-                UseVisualStyleBackColor = true
-            };
-
-            ContextMenuStrip contextMenu = new ContextMenuStrip();
-            ToolStripMenuItem addToFavoritesItem = new ToolStripMenuItem("افزودن به پرکاربردها");
-            addToFavoritesItem.Click += (sender, e) => AddToFavorites(emoji);
-            contextMenu.Items.Add(addToFavoritesItem);
-
-            if (favoriteEmojis.Contains(emoji))
-            {
-                ToolStripMenuItem removeFromFavoritesItem = new ToolStripMenuItem("حذف از پرکاربردها");
-                removeFromFavoritesItem.Click += (sender, e) => RemoveFromFavorites(emoji);
-                contextMenu.Items.Add(removeFromFavoritesItem);
-            }
-
-            btnEmoji.ContextMenuStrip = contextMenu;
-            btnEmoji.Click += (sender, e) => EmojiSelected?.Invoke(emoji);
-
-            return btnEmoji;
-        }
-
-        private void AddToFavorites(string emoji)
-        {
-            if (!favoriteEmojis.Contains(emoji))
-            {
-                favoriteEmojis.Add(emoji);
-                if (favoriteEmojis.Count > 20)
-                    favoriteEmojis.RemoveAt(0);
-                UpdateFavoriteEmojisPanel();
-                FavoriteEmojisChanged?.Invoke(favoriteEmojis);
-            }
-        }
-
-        private void RemoveFromFavorites(string emoji)
-        {
-            if (favoriteEmojis.Contains(emoji))
-            {
-                favoriteEmojis.Remove(emoji);
-                UpdateFavoriteEmojisPanel();
-                FavoriteEmojisChanged?.Invoke(favoriteEmojis);
-            }
-        }
-
-        private void UpdateFavoriteEmojisPanel()
-        {
-            favoriteEmojisPanel.Controls.Clear();
-
-            Label lblTitle = new Label
-            {
-                Text = "پرکاربردها:",
-                AutoSize = true,
-                Margin = new Padding(3, 10, 3, 10),
-                Font = new Font("Segoe UI", 9)
-            };
-            favoriteEmojisPanel.Controls.Add(lblTitle);
-
-            foreach (var emoji in favoriteEmojis)
-            {
-                Button btnEmoji = new Button
-                {
-                    Text = emoji,
-                    Size = new Size(35, 35),
-                    Margin = new Padding(2),
-                    Font = new Font("Segoe UI", 12),
-                    FlatStyle = FlatStyle.Flat,
-                    UseVisualStyleBackColor = true
-                };
-
-                btnEmoji.Click += (sender, e) => EmojiSelected?.Invoke(emoji);
-                favoriteEmojisPanel.Controls.Add(btnEmoji);
-            }
-        }
-
-        private void TxtSearch_TextChanged(object sender, EventArgs e)
-        {
-            string searchText = txtSearch.Text.Trim().ToLower();
-            
-            if (string.IsNullOrEmpty(searchText) || searchText == "جستجوی اموجی...")
-            {
-                tabEmojiCategories.Visible = true;
-                return;
-            }
-
-            TabPage searchResultTab = null;
-            foreach (TabPage tab in tabEmojiCategories.TabPages)
-            {
-                if (tab.Text == "نتایج جستجو")
-                {
-                    searchResultTab = tab;
-                    searchResultTab.Controls.Clear();
-                    break;
-                }
-            }
-
-            if (searchResultTab == null)
-            {
-                searchResultTab = new TabPage("نتایج جستجو");
-                tabEmojiCategories.TabPages.Add(searchResultTab);
-            }
-
-            FlowLayoutPanel flowPanel = new FlowLayoutPanel
-            {
-                Dock = DockStyle.Fill,
-                AutoScroll = true,
-                FlowDirection = FlowDirection.RightToLeft
-            };
-
-            var searchResults = new List<string>();
-            foreach (var category in emojiCategories)
-            {
-                foreach (var emoji in category.Value)
-                {
-                    if (emoji.Contains(searchText))
-                    {
-                        searchResults.Add(emoji);
-                    }
-                }
-            }
-
-            foreach (var emoji in searchResults)
-            {
-                Button btnEmoji = CreateEmojiButton(emoji);
-                flowPanel.Controls.Add(btnEmoji);
-            }
-
-            searchResultTab.Controls.Add(flowPanel);
-            tabEmojiCategories.SelectedTab = searchResultTab;
-        }
-
-        protected override void OnDeactivate(EventArgs e)
-        {
-            base.OnDeactivate(e);
-            this.Hide();
-        }
-    }
-} 
