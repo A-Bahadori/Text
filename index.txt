@@ -1,157 +1,145 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
-using System.Linq;
 using System.Windows.Forms;
 
-namespace EmojiTextBoxDemo
+namespace EmojiSelectorApp
 {
-    public partial class Form1 : Form
+    public partial class MainForm : Form
     {
-        private TextBox textBox1;
-        private FlowLayoutPanel emojiPanel;
+        private TextBox txtMessage;
+        private Button btnEmoji;
+        private Panel emojiPanel;
+        private List<string> emojis;
 
-        // لیست ایموجی‌ها
-        private List<string> emojis = new List<string>
-        {
-            "😀", "😂", "😍", "👍", "🙏", "🎉", "💡", "🔥", "🎂", "🚀",
-            "😉", "😎", "😢", "😡", "🤔", "🥳", "😴", "😇", "🤩", "🤖"
-        };
-
-        public Form1()
+        public MainForm()
         {
             InitializeComponent();
+            InitializeEmojiList();
+            SetupControls();
         }
 
-        private void InitializeComponent()
+        private void InitializeEmojiList()
         {
-            this.textBox1 = new TextBox();
-            this.emojiPanel = new FlowLayoutPanel();
-
-            // 
-            // textBox1
-            // 
-            this.textBox1.Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point);
-            this.textBox1.Location = new Point(12, 12);
-            this.textBox1.Width = 400;
-            this.textBox1.KeyUp += textBox1_KeyUp;
-            // 
-            // emojiPanel
-            // 
-            this.emojiPanel.Visible = false;
-            this.emojiPanel.AutoSize = true;
-            this.emojiPanel.WrapContents = true;
-            this.emojiPanel.FlowDirection = FlowDirection.LeftToRight;
-            this.emojiPanel.BackColor = Color.White;
-            this.emojiPanel.BorderStyle = BorderStyle.FixedSingle;
-            this.emojiPanel.Padding = new Padding(4);
-            // ثابت نگذارید، موقع نمایش موقعیتش را حساب می‌کنیم
-
-            // 
-            // Form1
-            // 
-            this.ClientSize = new Size(430, 250);
-            this.Controls.Add(this.textBox1);
-            this.Controls.Add(this.emojiPanel);
-            this.Text = "Emoji Picker Demo";
-            this.BackColor = Color.FromArgb(245, 245, 245);
-        }
-
-        private void textBox1_KeyUp(object sender, KeyEventArgs e)
-        {
-            string word = GetCurrentWord(textBox1);
-            if (word.StartsWith(":"))
+            // لیستی از اموجی‌های پرکاربرد
+            emojis = new List<string>()
             {
-                string query = word.Substring(1).ToLower();
-                var matches = emojis
-                    .Where(emo => emo.Contains(query) || GetEmojiName(emo).Contains(query))
-                    .ToList();
+                "😀", "😁", "😂", "🤣", "😃", "😄", "😅", "😆",
+                "😉", "😊", "😋", "😎", "😍", "😘", "🥰", "😗",
+                "😙", "😚", "🙂", "🤗", "🤩", "🤔", "🤨", "😐",
+                "😑", "😶", "🙄", "😏", "😣", "😥", "😮", "🤐",
+                "😯", "😪", "😫", "🥱", "😴", "😌", "😛", "😜",
+                "😝", "🤤", "😒", "😓", "😔", "😕", "🙃", "🤑",
+                "😲", "☹️", "🙁", "😖", "😞", "😟", "😤", "😢",
+                "😭", "😦", "😧", "😨", "😩", "🤯", "😬", "😰"
+            };
+        }
 
-                if (matches.Any())
+        private void SetupControls()
+        {
+            // تنظیم فرم اصلی
+            this.Text = "پیام‌رسان با انتخابگر اموجی";
+            this.Size = new Size(500, 400);
+            this.StartPosition = FormStartPosition.CenterScreen;
+            
+            // ایجاد TextBox برای نوشتن پیام
+            txtMessage = new TextBox
+            {
+                Multiline = true,
+                Location = new Point(10, 10),
+                Size = new Size(400, 100),
+                Font = new Font("Segoe UI", 12),
+                RightToLeft = RightToLeft.Yes // برای پشتیبانی از زبان فارسی
+            };
+            this.Controls.Add(txtMessage);
+            
+            // ایجاد دکمه برای نمایش پنل اموجی
+            btnEmoji = new Button
+            {
+                Text = "😊",
+                Location = new Point(420, 10),
+                Size = new Size(50, 50),
+                Font = new Font("Segoe UI", 16)
+            };
+            btnEmoji.Click += BtnEmoji_Click;
+            this.Controls.Add(btnEmoji);
+            
+            // ایجاد پنل برای نمایش اموجی‌ها
+            emojiPanel = new Panel
+            {
+                Location = new Point(10, 120),
+                Size = new Size(460, 200),
+                BorderStyle = BorderStyle.FixedSingle,
+                Visible = false,
+                AutoScroll = true
+            };
+            this.Controls.Add(emojiPanel);
+            
+            // پر کردن پنل با دکمه‌های اموجی
+            CreateEmojiButtons();
+        }
+
+        private void CreateEmojiButtons()
+        {
+            int buttonSize = 40;
+            int buttonsPerRow = 10;
+            int xPos = 5;
+            int yPos = 5;
+            int index = 0;
+            
+            foreach (string emoji in emojis)
+            {
+                Button btnEmoji = new Button
                 {
-                    PopulateEmojiPanel(matches);
-                    PositionEmojiPanel();
-                    emojiPanel.Visible = true;
+                    Text = emoji,
+                    Size = new Size(buttonSize, buttonSize),
+                    Location = new Point(xPos, yPos),
+                    Font = new Font("Segoe UI", 12),
+                    FlatStyle = FlatStyle.Flat
+                };
+                
+                btnEmoji.Click += EmojiButton_Click;
+                emojiPanel.Controls.Add(btnEmoji);
+                
+                index++;
+                if (index % buttonsPerRow == 0)
+                {
+                    xPos = 5;
+                    yPos += buttonSize + 5;
                 }
                 else
                 {
-                    emojiPanel.Visible = false;
+                    xPos += buttonSize + 5;
                 }
             }
-            else if (e.KeyCode == Keys.Escape)
-            {
-                emojiPanel.Visible = false;
-            }
-            else
-            {
-                emojiPanel.Visible = false;
-            }
         }
 
-        private string GetCurrentWord(TextBox tb)
+        private void BtnEmoji_Click(object sender, EventArgs e)
         {
-            int pos = tb.SelectionStart;
-            string upTo = tb.Text.Substring(0, pos);
-            int idx = upTo.LastIndexOf(' ');
-            return idx >= 0 ? upTo.Substring(idx + 1) : upTo;
+            // نمایش یا مخفی کردن پنل اموجی
+            emojiPanel.Visible = !emojiPanel.Visible;
         }
 
-        private void PopulateEmojiPanel(List<string> list)
+        private void EmojiButton_Click(object sender, EventArgs e)
         {
-            emojiPanel.Controls.Clear();
-            foreach (var emo in list)
-            {
-                var btn = new Button
-                {
-                    Text = emo,
-                    Font = new Font("Segoe UI Emoji", 16F),
-                    Size = new Size(40, 40),
-                    Margin = new Padding(4),
-                    FlatStyle = FlatStyle.Flat,
-                    BackColor = Color.White
-                };
-                btn.FlatAppearance.BorderSize = 0;
-                btn.Cursor = Cursors.Hand;
-                btn.Click += (s, e) =>
-                {
-                    InsertEmoji(emo);
-                };
-                emojiPanel.Controls.Add(btn);
-            }
+            Button btnClicked = sender as Button;
+            string selectedEmoji = btnClicked.Text;
+            
+            // اضافه کردن اموجی انتخاب شده به موقعیت فعلی کرسر
+            int cursorPosition = txtMessage.SelectionStart;
+            txtMessage.Text = txtMessage.Text.Insert(cursorPosition, selectedEmoji);
+            txtMessage.SelectionStart = cursorPosition + selectedEmoji.Length;
+            
+            // تمرکز دوباره روی TextBox
+            txtMessage.Focus();
         }
 
-        private void PositionEmojiPanel()
+        [STAThread]
+        static void Main()
         {
-            int idx = textBox1.SelectionStart;
-            Point p = textBox1.GetPositionFromCharIndex(idx);
-            p.Y += (int)Math.Ceiling(textBox1.Font.GetHeight()) + 5;
-            Point screen = textBox1.PointToScreen(p);
-            Point client = this.PointToClient(screen);
-
-            // حداکثر عرض پنل را محدود می‌کنیم تا ردیف‌بندی خودکار انجام شود
-            emojiPanel.MaximumSize = new Size(200, 0);
-            emojiPanel.Location = client;
-        }
-
-        private void InsertEmoji(string emoji)
-        {
-            int sel = textBox1.SelectionStart;
-            string word = GetCurrentWord(textBox1);
-            int wlen = word.Length;
-
-            textBox1.Text = textBox1.Text
-                .Remove(sel - wlen, wlen)
-                .Insert(sel - wlen, emoji);
-
-            textBox1.SelectionStart = sel - wlen + emoji.Length;
-            emojiPanel.Visible = false;
-            textBox1.Focus();
-        }
-
-        private string GetEmojiName(string emoji)
-        {
-            // برای سادگی، همون ایموجی را برمی‌گردانیم.
-            return emoji;
+            Application.EnableVisualStyles();
+            Application.SetCompatibleTextRenderingDefault(false);
+            Application.Run(new MainForm());
         }
     }
 }
