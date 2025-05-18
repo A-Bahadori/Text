@@ -1,121 +1,157 @@
-public byte[] GetWordFormat(IFormObject formObject, string fileName, bool isPdf = false)
+using System;
+using System.Collections.Generic;
+using System.Drawing;
+using System.Linq;
+using System.Windows.Forms;
+
+namespace EmojiTextBoxDemo
 {
-    var path = WordBilding(formObject, fileName);
-    var Ms = new MemoryStream();
-    try
+    public partial class Form1 : Form
     {
-        var filePath = Path.Combine(path, fileName);
-        var wordDoc = new Aspose.Words.Document(filePath);
-        
-        // تنظیم جهت راست به چپ برای اسناد فارسی
-        wordDoc.LayoutOptions.TextShaperFactory = Aspose.Words.Shaping.HarfBuzz.HarfBuzzTextShaperFactory.Instance;
-        
-        var txt = "";
-        foreach (Shape sh in wordDoc.GetChildNodes(NodeType.Shape, true))
+        private TextBox textBox1;
+        private ListBox listBox1;
+
+        // لیست ایموجی‌ها
+        private List<string> emojis = new List<string>
         {
-            txt = sh.GetText();
-            if (txt.Contains("DisplayBarcodeQR"))
+            "😀", "😂", "😍", "👍", "🙏", "🎉", "💡", "🔥", "🎂", "🚀",
+            "😉", "😎", "😢", "😡", "🤔", "🥳", "😴", "😇", "🤩", "🤖"
+        };
+
+        public Form1()
+        {
+            InitializeComponent();
+        }
+
+        private void InitializeComponent()
+        {
+            // ایجاد کنترل‌ها
+            this.textBox1 = new TextBox();
+            this.listBox1 = new ListBox();
+
+            // 
+            // textBox1
+            // 
+            this.textBox1.Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point);
+            this.textBox1.Location = new Point(12, 12);
+            this.textBox1.Width = 400;
+            this.textBox1.KeyUp += textBox1_KeyUp;
+            // 
+            // listBox1
+            // 
+            this.listBox1.Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point);
+            this.listBox1.Visible = false;
+            this.listBox1.Height = 150;
+            this.listBox1.Click += listBox1_Click;
+            this.listBox1.KeyDown += listBox1_KeyDown;
+
+            // 
+            // Form1
+            // 
+            this.ClientSize = new Size(430, 200);
+            this.Controls.Add(this.textBox1);
+            this.Controls.Add(this.listBox1);
+            this.Text = "Emoji Picker Demo";
+        }
+
+        // هنگام آزاد شدن کلید در TextBox
+        private void textBox1_KeyUp(object sender, KeyEventArgs e)
+        {
+            string word = GetCurrentWord(textBox1);
+            if (word.StartsWith(":"))
             {
-                var txtparam = txt.Split(new string[] { "DisplayBarcodeQR=" }, StringSplitOptions.None);
+                string query = word.Substring(1).ToLower();
+                var matches = emojis
+                    .Where(emo => GetEmojiName(emo).Contains(query) || emo.Contains(query))
+                    .ToList();
 
-                var _pixelsPerModule = sh.Height < sh.Width ? sh.Height : sh.Width;
-
-                QRCodeGenerator qrGenerator = new QRCodeGenerator();
-                QRCodeData qrCodeData = qrGenerator.CreateQrCode(txtparam[1], QRCodeGenerator.ECCLevel.M, true, false, EciMode.Utf8);
-                QRCode qrCode = new QRCode(qrCodeData);
-                System.Drawing.Image qrCodeImage = qrCode.GetGraphic(Convert.ToInt32(_pixelsPerModule/8) < 4 ? 4 : Convert.ToInt32(_pixelsPerModule/8), Color.Black, Color.White, true);
-
-                DocumentBuilder builder = new DocumentBuilder(wordDoc);
-                var width = sh.Width;
-                var height = sh.Height;
-                TableAlignment horizontalAlignment;
-                
-                switch (sh.HorizontalAlignment)
+                if (matches.Any())
                 {
-                    case HorizontalAlignment.Left: horizontalAlignment = TableAlignment.Left;
-                        break;
-
-                    case HorizontalAlignment.Center: horizontalAlignment = TableAlignment.Center;
-                        break;
-
-                    case HorizontalAlignment.Right: horizontalAlignment = TableAlignment.Right;
-                        break;
-
-                    default: horizontalAlignment = TableAlignment.Left;
-                        break;
+                    listBox1.DataSource = matches;
+                    PositionListBox();
+                    listBox1.Visible = true;
                 }
-                string text = sh.GetText();
-                
-                builder.MoveTo(sh);
-                sh.Remove();
-                Aspose.Words.Tables.Table table = builder.StartTable();
-                Cell cell = builder.InsertCell();
-                builder.InsertImage(qrCodeImage,width,height);
-                builder.RowFormat.Height = height;
-                builder.RowFormat.HeightRule = HeightRule.Exactly;
-                table.PreferredWidth = PreferredWidth.FromPoints(width);
-                table.Alignment = horizontalAlignment;
-                table.ClearBorders();
-                builder.EndRow();
-                builder.EndTable();
+                else
+                {
+                    listBox1.Visible = false;
+                }
+            }
+            else
+            {
+                listBox1.Visible = false;
             }
         }
-        
-        // تنظیم آپشن‌های بارکد
-        wordDoc.FieldOptions.BarcodeGenerator = new CustomBarcodeGenerator();
-        
-        if (isPdf)
+
+        // گرفتن کلمه جاری (از آخرین فاصله تا مکان‌نما)
+        private string GetCurrentWord(TextBox tb)
         {
-            var pdfMs = new MemoryStream();
-            
-            // تنظیمات مخصوص برای PDF فارسی
-            var pdf = new Aspose.Words.Saving.PdfSaveOptions();
-            
-            // تنظیم فونت‌های فارسی
-            pdf.NumeralFormat = NumeralFormat.Context;
-            pdf.FontFallbackSettings.LoadFontFallbackSettings();
-            
-            // اضافه کردن نستعلیق به لیست فونت‌های جایگزین
-            pdf.FontFallbackSettings.AddFontSubstitutes("Nastaliq", new string[] { "IranNastaliq", "B Nazanin", "Arial" });
-            
-            // تنظیم فونت‌های جاسازی شده برای اطمینان از نمایش صحیح
-            pdf.EmbedFullFonts = true;
-            pdf.FontEmbeddingMode = Aspose.Words.Saving.PdfFontEmbeddingMode.EmbedAll;
-            
-            // تنظیم جهت راست به چپ برای تمام متن‌ها
-            pdf.TextCompression = PdfTextCompression.Flate;
-            pdf.RightToLeftTextDirection = true;
-            
-            // تنظیم فرمت خروجی
-            pdf.SaveFormat = SaveFormat.Pdf;
-            
-            // آپدیت لایوت جداول قبل از ذخیره
-            wordDoc.UpdateTableLayout();
-            wordDoc.Save(pdfMs, pdf);
-            return pdfMs.ToArray();
+            int pos = tb.SelectionStart;
+            string textUpToCursor = tb.Text.Substring(0, pos);
+            int lastSpace = textUpToCursor.LastIndexOf(' ');
+            return lastSpace >= 0
+                ? textUpToCursor.Substring(lastSpace + 1)
+                : textUpToCursor;
         }
-        
-        wordDoc.Save(Ms, SaveFormat.Docx);
-        return Ms.ToArray();
-       
-    }
-    catch (Exception ex)
-    {
-        var logger = new RayLog4net(LoggerType.RuleService);
-        var message = "Message:" + ex.Message + ",StackTrace:" + ex.StackTrace + "," +
-                      (ex.InnerException != null
-                          ? "InnerExceptionMessage:" + ex.InnerException.Message + ",InnerExceptionStackTrace:" +
-                            ex.InnerException.StackTrace
-                          : "");
-        logger.Debug(message, true);
-        throw new Exception(ex.Message, ex);
-    }
-    finally
-    {
-        // منابع را آزاد کنید
-        if (Ms != null && Ms.CanRead)
+
+        // موقعیت‌دهی ListBox زیر مکان‌نما
+        private void PositionListBox()
         {
-            // ممکن است نیاز به بستن یا آزادسازی منابع دیگر باشد
+            int idx = textBox1.SelectionStart;
+            Point p = textBox1.GetPositionFromCharIndex(idx);
+            p.Y += (int)Math.Ceiling(textBox1.Font.GetHeight()) + 5;
+            Point screen = textBox1.PointToScreen(p);
+            Point client = this.PointToClient(screen);
+
+            listBox1.Location = client;
+            listBox1.Width = 150;
+        }
+
+        // کلیک روی آیتم لیست
+        private void listBox1_Click(object sender, EventArgs e)
+        {
+            InsertSelectedEmoji();
+        }
+
+        // کلیدهای Enter و Escape در ListBox
+        private void listBox1_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Enter)
+            {
+                InsertSelectedEmoji();
+                e.Handled = true;
+            }
+            else if (e.KeyCode == Keys.Escape)
+            {
+                listBox1.Visible = false;
+                e.Handled = true;
+            }
+        }
+
+        // درج ایموجی انتخاب‌شده در TextBox
+        private void InsertSelectedEmoji()
+        {
+            if (listBox1.SelectedItem == null) return;
+            string emoji = listBox1.SelectedItem.ToString();
+
+            int selStart = textBox1.SelectionStart;
+            string word = GetCurrentWord(textBox1);
+            int wordLen = word.Length;
+
+            textBox1.Text = textBox1.Text
+                .Remove(selStart - wordLen, wordLen)
+                .Insert(selStart - wordLen, emoji);
+
+            textBox1.SelectionStart = selStart - wordLen + emoji.Length;
+            listBox1.Visible = false;
+            textBox1.Focus();
+        }
+
+        // در صورت تمایل می‌توانید این تابع را برای نگاشت اسم به ایموجی بسط دهید
+        private string GetEmojiName(string emoji)
+        {
+            // برای سادگی اینجا فقط همان کاراکتر ایموجی برگردانده می‌شود
+            // می‌توانید یک دیکشنری از نام‌ها بسازید و اینجا استفاده کنید
+            return emoji;
         }
     }
 }
