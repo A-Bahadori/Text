@@ -9,7 +9,7 @@ namespace EmojiTextBoxDemo
     public partial class Form1 : Form
     {
         private TextBox textBox1;
-        private ListBox listBox1;
+        private FlowLayoutPanel emojiPanel;
 
         // لیست ایموجی‌ها
         private List<string> emojis = new List<string>
@@ -25,9 +25,8 @@ namespace EmojiTextBoxDemo
 
         private void InitializeComponent()
         {
-            // ایجاد کنترل‌ها
             this.textBox1 = new TextBox();
-            this.listBox1 = new ListBox();
+            this.emojiPanel = new FlowLayoutPanel();
 
             // 
             // textBox1
@@ -37,24 +36,27 @@ namespace EmojiTextBoxDemo
             this.textBox1.Width = 400;
             this.textBox1.KeyUp += textBox1_KeyUp;
             // 
-            // listBox1
+            // emojiPanel
             // 
-            this.listBox1.Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point);
-            this.listBox1.Visible = false;
-            this.listBox1.Height = 150;
-            this.listBox1.Click += listBox1_Click;
-            this.listBox1.KeyDown += listBox1_KeyDown;
+            this.emojiPanel.Visible = false;
+            this.emojiPanel.AutoSize = true;
+            this.emojiPanel.WrapContents = true;
+            this.emojiPanel.FlowDirection = FlowDirection.LeftToRight;
+            this.emojiPanel.BackColor = Color.White;
+            this.emojiPanel.BorderStyle = BorderStyle.FixedSingle;
+            this.emojiPanel.Padding = new Padding(4);
+            // ثابت نگذارید، موقع نمایش موقعیتش را حساب می‌کنیم
 
             // 
             // Form1
             // 
-            this.ClientSize = new Size(430, 200);
+            this.ClientSize = new Size(430, 250);
             this.Controls.Add(this.textBox1);
-            this.Controls.Add(this.listBox1);
+            this.Controls.Add(this.emojiPanel);
             this.Text = "Emoji Picker Demo";
+            this.BackColor = Color.FromArgb(245, 245, 245);
         }
 
-        // هنگام آزاد شدن کلید در TextBox
         private void textBox1_KeyUp(object sender, KeyEventArgs e)
         {
             string word = GetCurrentWord(textBox1);
@@ -62,39 +64,63 @@ namespace EmojiTextBoxDemo
             {
                 string query = word.Substring(1).ToLower();
                 var matches = emojis
-                    .Where(emo => GetEmojiName(emo).Contains(query) || emo.Contains(query))
+                    .Where(emo => emo.Contains(query) || GetEmojiName(emo).Contains(query))
                     .ToList();
 
                 if (matches.Any())
                 {
-                    listBox1.DataSource = matches;
-                    PositionListBox();
-                    listBox1.Visible = true;
+                    PopulateEmojiPanel(matches);
+                    PositionEmojiPanel();
+                    emojiPanel.Visible = true;
                 }
                 else
                 {
-                    listBox1.Visible = false;
+                    emojiPanel.Visible = false;
                 }
+            }
+            else if (e.KeyCode == Keys.Escape)
+            {
+                emojiPanel.Visible = false;
             }
             else
             {
-                listBox1.Visible = false;
+                emojiPanel.Visible = false;
             }
         }
 
-        // گرفتن کلمه جاری (از آخرین فاصله تا مکان‌نما)
         private string GetCurrentWord(TextBox tb)
         {
             int pos = tb.SelectionStart;
-            string textUpToCursor = tb.Text.Substring(0, pos);
-            int lastSpace = textUpToCursor.LastIndexOf(' ');
-            return lastSpace >= 0
-                ? textUpToCursor.Substring(lastSpace + 1)
-                : textUpToCursor;
+            string upTo = tb.Text.Substring(0, pos);
+            int idx = upTo.LastIndexOf(' ');
+            return idx >= 0 ? upTo.Substring(idx + 1) : upTo;
         }
 
-        // موقعیت‌دهی ListBox زیر مکان‌نما
-        private void PositionListBox()
+        private void PopulateEmojiPanel(List<string> list)
+        {
+            emojiPanel.Controls.Clear();
+            foreach (var emo in list)
+            {
+                var btn = new Button
+                {
+                    Text = emo,
+                    Font = new Font("Segoe UI Emoji", 16F),
+                    Size = new Size(40, 40),
+                    Margin = new Padding(4),
+                    FlatStyle = FlatStyle.Flat,
+                    BackColor = Color.White
+                };
+                btn.FlatAppearance.BorderSize = 0;
+                btn.Cursor = Cursors.Hand;
+                btn.Click += (s, e) =>
+                {
+                    InsertEmoji(emo);
+                };
+                emojiPanel.Controls.Add(btn);
+            }
+        }
+
+        private void PositionEmojiPanel()
         {
             int idx = textBox1.SelectionStart;
             Point p = textBox1.GetPositionFromCharIndex(idx);
@@ -102,55 +128,29 @@ namespace EmojiTextBoxDemo
             Point screen = textBox1.PointToScreen(p);
             Point client = this.PointToClient(screen);
 
-            listBox1.Location = client;
-            listBox1.Width = 150;
+            // حداکثر عرض پنل را محدود می‌کنیم تا ردیف‌بندی خودکار انجام شود
+            emojiPanel.MaximumSize = new Size(200, 0);
+            emojiPanel.Location = client;
         }
 
-        // کلیک روی آیتم لیست
-        private void listBox1_Click(object sender, EventArgs e)
+        private void InsertEmoji(string emoji)
         {
-            InsertSelectedEmoji();
-        }
-
-        // کلیدهای Enter و Escape در ListBox
-        private void listBox1_KeyDown(object sender, KeyEventArgs e)
-        {
-            if (e.KeyCode == Keys.Enter)
-            {
-                InsertSelectedEmoji();
-                e.Handled = true;
-            }
-            else if (e.KeyCode == Keys.Escape)
-            {
-                listBox1.Visible = false;
-                e.Handled = true;
-            }
-        }
-
-        // درج ایموجی انتخاب‌شده در TextBox
-        private void InsertSelectedEmoji()
-        {
-            if (listBox1.SelectedItem == null) return;
-            string emoji = listBox1.SelectedItem.ToString();
-
-            int selStart = textBox1.SelectionStart;
+            int sel = textBox1.SelectionStart;
             string word = GetCurrentWord(textBox1);
-            int wordLen = word.Length;
+            int wlen = word.Length;
 
             textBox1.Text = textBox1.Text
-                .Remove(selStart - wordLen, wordLen)
-                .Insert(selStart - wordLen, emoji);
+                .Remove(sel - wlen, wlen)
+                .Insert(sel - wlen, emoji);
 
-            textBox1.SelectionStart = selStart - wordLen + emoji.Length;
-            listBox1.Visible = false;
+            textBox1.SelectionStart = sel - wlen + emoji.Length;
+            emojiPanel.Visible = false;
             textBox1.Focus();
         }
 
-        // در صورت تمایل می‌توانید این تابع را برای نگاشت اسم به ایموجی بسط دهید
         private string GetEmojiName(string emoji)
         {
-            // برای سادگی اینجا فقط همان کاراکتر ایموجی برگردانده می‌شود
-            // می‌توانید یک دیکشنری از نام‌ها بسازید و اینجا استفاده کنید
+            // برای سادگی، همون ایموجی را برمی‌گردانیم.
             return emoji;
         }
     }
