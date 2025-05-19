@@ -10,26 +10,16 @@ public void Setup()
     var doc = new Document();
     var builder = new DocumentBuilder(doc);
     
-    // ایجاد یک Shape برای متن فارسی
-    Shape shape = new Shape(doc, ShapeType.TextBox)
-    {
-        Width = 200,
-        Height = 100,
-        HorizontalAlignment = HorizontalAlignment.Center
-    };
-    
-    shape.AppendChild(new Paragraph(doc));
-    
-    // تنظیم فونت نستعلیق برای Run
-    Run run = new Run(doc, "متن فارسی با فونت نستعلیق");
-    run.Font.Name = "IranNastaliq"; // نام فونت نستعلیق
-    run.Font.Size = 18;
-    
-    shape.FirstParagraph.AppendChild(run);
+    // تنظیم فونت نستعلیق
+    builder.Font.Name = "IranNastaliq"; // نام فونت نستعلیق
+    builder.Font.Size = 18;
     
     // تنظیم جهت متن برای پشتیبانی از فارسی
-    shape.FirstParagraph.ParagraphFormat.Bidi = true;
+    builder.ParagraphFormat.Bidi = true;
     
-    builder.InsertNode(shape);
+    // درج متن فارسی
+    builder.Write("متن فارسی با فونت نستعلیق");
+    
+    // ذخیره فایل
     doc.Save(_testFilePath);
 }
