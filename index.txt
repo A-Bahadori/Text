@@ -1,25 +1,75 @@
-[SetUp]
-public void Setup()
+using System;
+using System.IO;
+
+namespace YourNamespace
 {
-    _tempFolder = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
-    Directory.CreateDirectory(_tempFolder);
-    _testFileName = "test.docx";
-    _testFilePath = Path.Combine(_tempFolder, _testFileName);
-    
-    // ساختن فایل Word با متن فارسی و فونت نستعلیق
-    var doc = new Document();
-    var builder = new DocumentBuilder(doc);
-    
-    // تنظیم فونت نستعلیق
-    builder.Font.Name = "IranNastaliq"; // نام فونت نستعلیق
-    builder.Font.Size = 18;
-    
-    // تنظیم جهت متن برای پشتیبانی از فارسی
-    builder.ParagraphFormat.Bidi = true;
-    
-    // درج متن فارسی
-    builder.Write("متن فارسی با فونت نستعلیق");
-    
-    // ذخیره فایل
-    doc.Save(_testFilePath);
+    /// <summary>
+    /// مدیریت لایسنس‌های Aspose
+    /// </summary>
+    public class AsposeLicenseManager
+    {
+        private static readonly Lazy<AsposeLicenseManager> _instance = 
+            new Lazy<AsposeLicenseManager>(() => new AsposeLicenseManager());
+
+        public static AsposeLicenseManager Instance => _instance.Value;
+
+        private bool _wordsLicenseInitialized = false;
+        private readonly object _lockObject = new object();
+
+        // سازنده خصوصی برای الگوی Singleton
+        private AsposeLicenseManager() { }
+
+        /// <summary>
+        /// فعال‌سازی لایسنس Aspose.Words
+        /// </summary>
+        /// <param name="licenseFilePath">مسیر فایل لایسنس (اختیاری)</param>
+        public void InitializeWordsLicense(string licenseFilePath = null)
+        {
+            if (_wordsLicenseInitialized)
+                return;
+
+            lock (_lockObject)
+            {
+                if (_wordsLicenseInitialized)
+                    return;
+
+                try
+                {
+                    if (string.IsNullOrEmpty(licenseFilePath))
+                    {
+                        // سعی می‌کنیم فایل لایسنس را در مسیرهای متداول پیدا کنیم
+                        string[] possiblePaths = new[]
+                        {
+                            Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Lib", "Aspose.Total.NET.lic"),
+                            Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Aspose.Total.NET.lic"),
+                            @"..\..\Lib\Aspose.Total.NET.lic"
+                        };
+
+                        foreach (var path in possiblePaths)
+                        {
+                            if (File.Exists(path))
+                            {
+                                licenseFilePath = path;
+                                break;
+                            }
+                        }
+                    }
+
+                    var wordLicense = new Aspose.Words.License();
+                    wordLicense.SetLicense(licenseFilePath ?? @"..\..\Lib\Aspose.Total.NET.lic");
+
+                    _wordsLicenseInitialized = true;
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"خطا در فعال‌سازی لایسنس Aspose.Words: {ex.Message}");
+                    throw;
+                }
+            }
+        }
+
+        // می‌توانید متدهای مشابه برای سایر محصولات Aspose اضافه کنید
+        // public void InitializeCellsLicense() { ... }
+        // public void InitializePdfLicense() { ... }
+    }
 }
