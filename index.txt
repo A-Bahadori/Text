@@ -1,75 +1,52 @@
 using System;
 using System.IO;
 
-namespace YourNamespace
+namespace Ray.BPMS.Infrastructure.Helpers
 {
     /// <summary>
-    /// مدیریت لایسنس‌های Aspose
+    /// فعال‌سازی لایسنس Aspose.Words
     /// </summary>
-    public class AsposeLicenseManager
+    public static class AsposeWordsLicenseActivator
     {
-        private static readonly Lazy<AsposeLicenseManager> _instance = 
-            new Lazy<AsposeLicenseManager>(() => new AsposeLicenseManager());
-
-        public static AsposeLicenseManager Instance => _instance.Value;
-
-        private bool _wordsLicenseInitialized = false;
-        private readonly object _lockObject = new object();
-
-        // سازنده خصوصی برای الگوی Singleton
-        private AsposeLicenseManager() { }
-
         /// <summary>
-        /// فعال‌سازی لایسنس Aspose.Words
+        /// فعال‌سازی لایسنس Aspose.Words با استفاده از فایل
         /// </summary>
-        /// <param name="licenseFilePath">مسیر فایل لایسنس (اختیاری)</param>
-        public void InitializeWordsLicense(string licenseFilePath = null)
+        public static void ActivateLicense()
         {
-            if (_wordsLicenseInitialized)
-                return;
-
-            lock (_lockObject)
+            try
             {
-                if (_wordsLicenseInitialized)
-                    return;
-
+                // روش اول: استفاده از LicenseHelper موجود
+                // فعال‌سازی همه لایسنس‌های Aspose از جمله Aspose.Words
+                LicenseHelper.ActivateMemoryPatching();
+            }
+            catch (Exception ex)
+            {
+                // اگر روش اول با مشکل مواجه شد، از روش استاندارد استفاده می‌کنیم
                 try
                 {
-                    if (string.IsNullOrEmpty(licenseFilePath))
+                    // مسیر فایل لایسنس
+                    string licenseFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Lib", "Aspose.Total.NET.lic");
+                    
+                    // اگر فایل در مسیر اصلی پیدا نشد، از مسیر نسبی استفاده می‌کنیم
+                    if (!File.Exists(licenseFilePath))
                     {
-                        // سعی می‌کنیم فایل لایسنس را در مسیرهای متداول پیدا کنیم
-                        string[] possiblePaths = new[]
-                        {
-                            Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Lib", "Aspose.Total.NET.lic"),
-                            Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Aspose.Total.NET.lic"),
-                            @"..\..\Lib\Aspose.Total.NET.lic"
-                        };
-
-                        foreach (var path in possiblePaths)
-                        {
-                            if (File.Exists(path))
-                            {
-                                licenseFilePath = path;
-                                break;
-                            }
-                        }
+                        licenseFilePath = @"..\..\Lib\Aspose.Total.NET.lic";
                     }
 
+                    // فعال‌سازی فقط لایسنس Aspose.Words
                     var wordLicense = new Aspose.Words.License();
-                    wordLicense.SetLicense(licenseFilePath ?? @"..\..\Lib\Aspose.Total.NET.lic");
-
-                    _wordsLicenseInitialized = true;
+                    wordLicense.SetLicense(licenseFilePath);
                 }
-                catch (Exception ex)
+                catch (Exception innerEx)
                 {
+                    // لاگ خطا
                     System.Diagnostics.Debug.WriteLine($"خطا در فعال‌سازی لایسنس Aspose.Words: {ex.Message}");
-                    throw;
+                    System.Diagnostics.Debug.WriteLine($"جزئیات خطا: {innerEx.Message}");
+                    
+                    // می‌توانید خطا را به سیستم لاگ خود ارسال کنید یا آن را مجدداً پرتاب کنید
+                    // throw new Exception("خطا در فعال‌سازی لایسنس Aspose.Words", innerEx);
                 }
             }
         }
-
-        // می‌توانید متدهای مشابه برای سایر محصولات Aspose اضافه کنید
-        // public void InitializeCellsLicense() { ... }
-        // public void InitializePdfLicense() { ... }
     }
 }
