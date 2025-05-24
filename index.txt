@@ -1,45 +1,5 @@
-/// <summary>
-        /// Activates Aspose.Words license using the standard method
-        /// </summary>
-        /// <param name="licensePath">Path to the license file (optional)</param>
-        private static void ActivateStandardLicense(string licensePath = null)
-        {
-            try
-            {
-                // If no path is provided, use default paths
-                if (string.IsNullOrEmpty(licensePath))
-                {
-                    // Possible license file paths
-                    string[] possiblePaths = new[]
-                    {
-                        Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Lib", "Aspose.Total.NET.lic"),
-                        Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Aspose.Total.NET.lic"),
-                        @"..\..\Lib\Aspose.Total.NET.lic"
-                    };
+fix(nunit): correct test setup to use Nastaliq font and save generated PDF
 
-                    foreach (var path in possiblePaths)
-                    {
-                        if (File.Exists(path))
-                        {
-                            licensePath = path;
-                            break;
-                        }
-                    }
-
-                    if (string.IsNullOrEmpty(licensePath))
-                    {
-                        throw new FileNotFoundException("Aspose license file not found.");
-                    }
-                }
-
-                // Activate Aspose.Words license
-                var wordLicense = new Aspose.Words.License();
-                wordLicense.SetLicense(licensePath);
-
-                System.Diagnostics.Debug.WriteLine("Aspose.Words license successfully activated (standard method).\");
-            }
-            catch (Exception ex)
-            {
-                throw new InvalidOperationException($"Aspose.Words license activation failed (standard method): {ex.Message}", ex);
-            }
-        }
+- Replaced QR code generation in [Setup] with Nastaliq font text for accurate rendering validation
+- Added filesystem persistence for Word-to-PDF output to verify font integrity
+- Ensures test reflects actual use case requirements
