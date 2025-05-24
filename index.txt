@@ -1,5 +1,39 @@
-fix(nunit): correct test setup to use Nastaliq font and save generated PDF
+public static class AsposeHelper
+{
+    private static bool _isLicenseSet = false;
+    private static readonly object _lockObject = new object();
 
-- Replaced QR code generation in [Setup] with Nastaliq font text for accurate rendering validation
-- Added filesystem persistence for Word-to-PDF output to verify font integrity
-- Ensures test reflects actual use case requirements
+    public static void SetLicense()
+    {
+        if (_isLicenseSet) return;
+
+        lock (_lockObject)
+        {
+            if (_isLicenseSet) return;
+
+            try
+            {
+                var wordLicense = new Aspose.Words.License();
+                
+                // روش اول: از فایل خارجی
+                string licensePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, 
+                    "Licenses", "Aspose.Total.NET.lic");
+                
+                if (File.Exists(licensePath))
+                {
+                    wordLicense.SetLicense(licensePath);
+                    _isLicenseSet = true;
+                    return;
+                }
+
+                // روش دوم: از Embedded Resource
+                wordLicense.SetLicense("YourNamespace.Aspose.Total.NET.lic");
+                _isLicenseSet = true;
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException($"Failed to set Aspose license: {ex.Message}", ex);
+            }
+        }
+    }
+}
