@@ -15,7 +15,7 @@ public static class AsposeHelper
             {
                 var wordLicense = new Aspose.Words.License();
                 
-                // روش اول: از فایل خارجی
+                // اولویت اول: فایل خارجی
                 string licensePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, 
                     "Licenses", "Aspose.Total.NET.lic");
                 
@@ -26,14 +26,48 @@ public static class AsposeHelper
                     return;
                 }
 
-                // روش دوم: از Embedded Resource
-                wordLicense.SetLicense("YourNamespace.Aspose.Total.NET.lic");
-                _isLicenseSet = true;
+                // اولویت دوم: Embedded Resource
+                if (TrySetLicenseFromEmbeddedResource(wordLicense))
+                {
+                    _isLicenseSet = true;
+                    return;
+                }
+
+                // اگر هیچکدام یافت نشد
+                throw new FileNotFoundException("Aspose license file not found in external path or embedded resources");
             }
             catch (Exception ex)
             {
                 throw new InvalidOperationException($"Failed to set Aspose license: {ex.Message}", ex);
             }
+        }
+    }
+
+    private static bool TrySetLicenseFromEmbeddedResource(Aspose.Words.License license)
+    {
+        try
+        {
+            var assembly = Assembly.GetExecutingAssembly();
+            var resourceNames = assembly.GetManifestResourceNames();
+            
+            // جستجو برای فایل لایسنس در منابع
+            var licenseResourceName = resourceNames.FirstOrDefault(r => r.EndsWith("Aspose.Total.NET.lic"));
+            
+            if (licenseResourceName != null)
+            {
+                using var stream = assembly.GetManifestResourceStream(licenseResourceName);
+                if (stream != null)
+                {
+                    license.SetLicense(stream);
+                    return true;
+                }
+            }
+            
+            return false;
+        }
+        catch
+        {
+            return false;
         }
     }
 }
