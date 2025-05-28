@@ -1,1 +1,6 @@
-Add Aspose.Words.Shaping.HarfBuzz package and configure HarfBuzzTextShaperFactory for improved text rendering
+# تنظیمات timeout را افزایش دهید
+git config http.postBuffer 524288000
+git config http.timeout 600
+
+# سپس push مستقیم
+git push --force-with-lease origin fix/nastaliq-font-corruption-word-pdf
