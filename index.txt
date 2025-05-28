@@ -1,55 +1,5 @@
-# Fix: Nastaliq Font Corruption in Word to PDF Conversion
+refactor: remove unused Aspose.Words references
 
-## Summary
-
-This MR resolves the Nastaliq font corruption issue that occurs when converting Word documents to PDF format, ensuring proper rendering of Persian/Arabic text.
-
-## Changes Made
-
-### 🔧 Technical Fixes
-- **Fixed Nastaliq font corruption**: Implemented solution to prevent text corruption in Persian/Arabic documents
-- **Enhanced font processing**: Added better support for complex font rendering
-- **Test improvements**: Modified test section to address new requirements
-
-### 📦 Package Updates
-- **Added**: `Aspose.Words.Shaping.HarfBuzz` package for enhanced complex font support
-- **Upgraded**: `Aspose.Words` to version `25.4.0.0`
-
-## Important Prerequisites & Considerations
-
-### ⚠️ Server Requirements
-- **Nastaliq Font Installation**: If the Word file doesn't contain embedded fonts, Nastaliq font **must be installed** on the server and project system
-
-### 🔄 Post-Merge Actions Required
-- **Package Restore**: Due to the addition of new packages, package restoration is mandatory
-- **Comprehensive Testing**: Given the Aspose.Words upgrade, thorough testing of other related components is recommended
-
-## Testing
-
-- [x] Word to PDF conversion with Nastaliq font
-- [x] PDF output quality verification
-- [x] Testing with various Persian/Arabic fonts
-- [x] Existing test modifications
-
-## Type of Changes
-
-- [x] Bug fix (non-breaking change that fixes an issue)
-- [x] Enhancement (performance improvement)
-- [ ] Breaking change (fix or feature that would cause existing functionality to not work as expected)
-- [ ] New feature (non-breaking change that adds functionality)
-
-## Review Checklist
-
-- [x] Code has been tested and works correctly
-- [x] Relevant tests have been added/modified
-- [x] Changes comply with project coding standards
-- [x] Documentation updated where necessary
-
-## Additional Notes
-
-These changes are critical for projects dealing with Persian/Arabic content and significantly improve PDF output quality. The implementation ensures proper text rendering and maintains document integrity during conversion.
-
----
-
-**Branch**: `fix/nastaliq-font-corruption-word-pdf`  
-**Related Issues**: #[issue-number] (if applicable)
+Refactor: Remove Unused Aspose.Words References
+Summary
+This MR removes unnecessary Aspose.Words package references from multiple projects and sections where the package was referenced but not actually utilized, improving project cleanliness and reducing dependency overhead.
